@@ -2,48 +2,91 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    protected $table = 'users';
+    protected $primaryKey = 'user_id';
+
     protected $fillable = [
-        'name',
+        'username',
         'email',
-        'password',
+        'password_hash',
+        'employee_id',
+        'branch_id',
+        'is_active',
+        'last_login_at',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
-        'password',
+        'password_hash',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    protected $casts = [
+        'is_active' => 'boolean',
+        'last_login_at' => 'datetime',
+        'email_verified_at' => 'datetime',
+    ];
+
+    // Relationships
+    public function employee()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsTo(Employee::class, 'employee_id', 'employee_id');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id', 'branch_id');
+    }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_roles', 'user_id', 'role_id');
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(Document::class, 'uploaded_by');
+    }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(AuditLog::class, 'user_id');
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class, 'technician_id');
+    }
+
+    public function checkins()
+    {
+        return $this->hasMany(VehicleCheckin::class, 'checked_in_by');
+    }
+
+    public function quotations()
+    {
+        return $this->hasMany(Quotation::class, 'created_by');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'received_by');
+    }
+
+    public function performanceEvaluations()
+    {
+        return $this->hasMany(PerformanceEvaluation::class, 'evaluator_id');
+    }
+
+    public function stockMovements()
+    {
+        return $this->hasMany(StockMovement::class, 'moved_by');
     }
 }

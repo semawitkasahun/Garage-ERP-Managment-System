@@ -1,0 +1,73 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class VehicleCheckin extends Model
+{
+    use HasFactory;
+
+    protected $table = 'vehicle_checkins';
+    protected $primaryKey = 'checkin_id';
+
+    protected $fillable = [
+        'appointment_id',
+        'vehicle_id',
+        'customer_id',
+        'branch_id',
+        'mileage_in',
+        'fuel_level',
+        'customer_complaint',
+        'signature_file',
+        'key_tag_number',
+        'checked_in_by',
+        'checked_in_at',
+    ];
+
+    protected $casts = [
+        'checked_in_at' => 'datetime',
+    ];
+
+    // Relationships
+    public function appointment()
+    {
+        return $this->belongsTo(Appointment::class, 'appointment_id', 'appointment_id');
+    }
+
+    public function vehicle()
+    {
+        return $this->belongsTo(Vehicle::class, 'vehicle_id', 'vehicle_id');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id', 'branch_id');
+    }
+
+    public function checkedInBy()
+    {
+        return $this->belongsTo(User::class, 'checked_in_by', 'user_id');
+    }
+
+    public function checklistItems()
+    {
+        return $this->hasMany(CheckinChecklistItem::class, 'checkin_id');
+    }
+
+    public function media()
+    {
+        return $this->hasMany(CheckinMedia::class, 'checkin_id');//this is the foreign key in the checkin_media table and the primary key in the vehicle_checkins table
+    }
+
+    public function inspections()
+    {
+        return $this->hasMany(Inspection::class, 'checkin_id');//this is the foreign key in the inspections table and the primary key in the vehicle_checkins table
+    }
+}
