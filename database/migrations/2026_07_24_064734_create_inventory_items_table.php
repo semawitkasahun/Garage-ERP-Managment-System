@@ -25,7 +25,14 @@ return new class extends Migration
             
             $table->index('sku');
             $table->index('category');
+            $table->foreignId('section_id')
+            ->nullable()
+            ->constrained('sections', 'section_id')
+            ->cascadeOnUpdate()
+            ->nullOnDelete();
+
         });
+        
     }
 
     public function down(): void

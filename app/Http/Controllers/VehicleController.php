@@ -2,34 +2,47 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\VehicleCheckin;
+use App\Models\Vehicle;
 use Illuminate\Http\Request;
-use App\Models\Appointment;
 
-class VehicleCheckinController extends Controller
+class VehicleController extends Controller
 {
     public function index(Request $request)
     {
-        $query = VehicleCheckin::query()->with(['vehicle', 'customer', 'branch', 'checkedInBy', 'appointment']);
-
-        if ($request->has('vehicle_id')) {
-            $query->where('vehicle_id', $request->vehicle_id);
-        }
+        $query = Vehicle::query()->with(['customer']);
 
         if ($request->has('customer_id')) {
             $query->where('customer_id', $request->customer_id);
         }
 
-        if ($request->has('branch_id')) {
-            $query->where('branch_id', $request->branch_id);
+        if ($request->has('make')) {
+            $query->where('make', 'like', '%' . $request->make . '%');
         }
 
-        if ($request->has('from_date')) {
-            $query->whereDate('checked_in_at', '>=', $request->from_date);
+        if ($request->has('model')) {
+            $query->where('model', 'like', '%' . $request->model . '%');
         }
 
-        if ($request->has('to_date')) {
-            $query->whereDate('checked_in_at', '<=', $request->to_date);
+        if ($request->has('plate_number')) {
+            $query->where('plate_number', 'like', '%' . $request->plate_number . '%');
+        }
+
+        if ($request->has('vin')) {
+            $query->where('vin', 'like', '%' . $request->vin . '%');
+        }
+
+        if ($request->has('year')) {
+            $query->where('year', $request->year);
+        }
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('make', 'like', '%' . $search . '%')
+                  ->orWhere('model', 'like', '%' . $search . '%')
+                  ->orWhere('plate_number', 'like', '%' . $search . '%')
+                  ->orWhere('vin', 'like', '%' . $search . '%');
+            });
         }
 
         return $query->latest()
@@ -39,77 +52,89 @@ class VehicleCheckinController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'appointment_id' => 'nullable|integer|exists:appointments,appointment_id',
-            'vehicle_id' => 'required|integer|exists:vehicles,vehicle_id',
             'customer_id' => 'required|integer|exists:customers,customer_id',
-            'branch_id' => 'required|integer|exists:branches,branch_id',
-            'mileage_in' => 'nullable|integer|min:0',
-            'fuel_level' => 'nullable|string|max:10',
-            'customer_complaint' => 'nullable|string',
-            'signature_file' => 'nullable|string|max:255',
-            'key_tag_number' => 'nullable|string|max:30',
-            'checked_in_by' => 'required|integer|exists:users,user_id',
+            'vin' => 'required|string|max:50|unique:vehicles,vin',
+            'plate_number' => 'nullable|string|max:20',
+            'make' => 'nullable|string|max:50',
+            'model' => 'nullable|string|max:50',
+            'year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+            'engine_number' => 'nullable|string|max:50',
+            'chassis_number' => 'nullable|string|max:50',
+            'mileage' => 'nullable|integer|min:0',
+            'warranty_expiry' => 'nullable|date',
         ]);
 
-        $checkin = VehicleCheckin::create($validated);
-        return response()->json($checkin, 201);
+        $vehicle = Vehicle::create($validated);
+        return response()->json($vehicle, 201);
     }
 
-    public function show(VehicleCheckin $vehicleCheckin)
+    public function show(Vehicle $vehicle)
     {
-        return $vehicleCheckin->load([
-            'vehicle',
+        return $vehicle->load([
             'customer',
-            'branch',
-            'checkedInBy',
-            'appointment',
-            'checklistItems',
-            'media',
-            'inspections'
+            'appointments',
+            'vehicleCheckins',
+            'inspections',
+            'quotations',
+            'workOrders',
+            'ownershipHistory'
         ]);
     }
 
-    public function update(Request $request, VehicleCheckin $vehicleCheckin)
+    public function update(Request $request, Vehicle $vehicle)
     {
         $validated = $request->validate([
-            'mileage_in' => 'nullable|integer|min:0',
-            'fuel_level' => 'nullable|string|max:10',
-            'customer_complaint' => 'nullable|string',
-            'signature_file' => 'nullable|string|max:255',
-            'key_tag_number' => 'nullable|string|max:30',
+            'customer_id' => 'sometimes|required|integer|exists:customers,customer_id',
+            'vin' => 'sometimes|required|string|max:50|unique:vehicles,vin,' . $vehicle->vehicle_id . ',vehicle_id',
+            'plate_number' => 'nullable|string|max:20',
+            'make' => 'nullable|string|max:50',
+            'model' => 'nullable|string|max:50',
+            'year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+            'engine_number' => 'nullable|string|max:50',
+            'chassis_number' => 'nullable|string|max:50',
+            'mileage' => 'nullable|integer|min:0',
+            'warranty_expiry' => 'nullable|date',
         ]);
 
-        $vehicleCheckin->update($validated);
-        return $vehicleCheckin;
+        $vehicle->update($validated);
+        return $vehicle;
     }
 
-    public function destroy(VehicleCheckin $vehicleCheckin)
+    public function destroy(Vehicle $vehicle)
     {
-        $vehicleCheckin->delete();
+        $vehicle->delete();
         return response()->noContent();
     }
 
-    public function getCheckinForm($appointmentId)
+    public function updateMileage(Request $request, Vehicle $vehicle)
     {
-        $appointment = Appointment::with(['customer', 'vehicle'])->findOrFail($appointmentId);
-
-        return response()->json([
-            'appointment' => $appointment,
-            'checklist_items' => $this->getDefaultChecklistItems(),
+        $validated = $request->validate([
+            'mileage' => 'required|integer|min:' . $vehicle->mileage,
         ]);
+
+        $vehicle->update(['mileage' => $validated['mileage']]);
+        return $vehicle;
     }
 
-    private function getDefaultChecklistItems()
+    public function getByCustomer($customerId)
     {
-        return [
-            'exterior' => ['condition' => 'ok', 'notes' => null],
-            'interior' => ['condition' => 'ok', 'notes' => null],
-            'fuel' => ['condition' => 'ok', 'notes' => null],
-            'existing_damage' => ['condition' => 'ok', 'notes' => null],
-            'tires' => ['condition' => 'ok', 'notes' => null],
-            'lights' => ['condition' => 'ok', 'notes' => null],
-            'windshield' => ['condition' => 'ok', 'notes' => null],
-            'odometer' => ['condition' => 'ok', 'notes' => null],
-        ];
+        $vehicles = Vehicle::where('customer_id', $customerId)
+            ->with(['customer'])
+            ->latest()
+            ->get();
+        return $vehicles;
+    }
+
+    public function getVehicleHistory($vehicleId)
+    {
+        $vehicle = Vehicle::with([
+            'ownershipHistory.customer',
+            'appointments',
+            'workOrders.jobCards',
+            'inspections',
+            'quotations'
+        ])->findOrFail($vehicleId);
+
+        return $vehicle;
     }
 }

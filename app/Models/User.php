@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'users';
     protected $primaryKey = 'user_id';
@@ -34,6 +35,11 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
+    public function getAuthPassword()
+    {
+        return $this->password_hash;
+    }
+
     // Relationships
     public function employee()
     {
@@ -50,43 +56,81 @@ class User extends Authenticatable
         return $this->belongsToMany(Role::class, 'user_roles', 'user_id', 'role_id');
     }
 
-    public function documents()
+    // Role Check Methods
+    public function hasRole($role)
     {
-        return $this->hasMany(Document::class, 'uploaded_by');
+        return $this->roles()->where('name', $role)->exists();
     }
 
-    public function auditLogs()
+    public function hasAnyRole($roles)
     {
-        return $this->hasMany(AuditLog::class, 'user_id');
+        return $this->roles()->whereIn('name', (array) $roles)->exists();
     }
 
-    public function appointments()
+    public function hasAllRoles($roles)
     {
-        return $this->hasMany(Appointment::class, 'technician_id');
+        return $this->roles()->whereIn('name', (array) $roles)->count() === count((array) $roles);
     }
 
-    public function checkins()
+    public function isOwner()
     {
-        return $this->hasMany(VehicleCheckin::class, 'checked_in_by');
+        return $this->hasRole('Owner');
     }
 
-    public function quotations()
+    public function isAdmin()
     {
-        return $this->hasMany(Quotation::class, 'created_by');
+        return $this->hasRole('Admin') || $this->isOwner();
     }
 
-    public function payments()
+    public function isSupervisor()
     {
-        return $this->hasMany(Payment::class, 'received_by');
+        return $this->hasRole('Supervisor') || $this->isAdmin();
     }
 
-    public function performanceEvaluations()
+    public function isManager()
     {
-        return $this->hasMany(PerformanceEvaluation::class, 'evaluator_id');
+        return $this->hasAnyRole(['Manager', 'Supervisor', 'Admin', 'Owner']);
     }
 
-    public function stockMovements()
+    public function isEmployee()
     {
-        return $this->hasMany(StockMovement::class, 'moved_by');
+        return $this->hasAnyRole(['Employee', 'Technician', 'Service Advisor', 'Accountant', 'Parts Manager']);
+    }
+
+    // Get user level (lower number = higher权限)
+    public function getRoleLevel()
+    {
+        $role = $this->roles()->orderBy('level', 'asc')->first();
+        return $role ? $role->level : 999;
+    }
+
+    public function canManageUser($user)
+    {
+        // Can't manage yourself
+        if ($this->user_id === $user->user_id) {
+            return false;
+        }
+
+        // Owner can manage everyone
+        if ($this->isOwner()) {
+            return true;
+        }
+
+        // Admin can manage non-owners
+        if ($this->isAdmin() && !$user->isOwner()) {
+            return true;
+        }
+
+        // Supervisor can manage employees and lower
+        if ($this->isSupervisor() && !$user->isAdmin() && !$user->isOwner()) {
+            return true;
+        }
+
+        // Manager can manage employees
+        if ($this->isManager() && $user->isEmployee()) {
+            return true;
+        }
+
+        return false;
     }
 }

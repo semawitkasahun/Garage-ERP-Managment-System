@@ -15,6 +15,11 @@ return new class extends Migration
                 ->constrained('quotations', 'quotation_id')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
+            $table->foreignId('section_id')
+            ->nullable()
+            ->constrained('sections', 'section_id')
+            ->cascadeOnUpdate()
+            ->nullOnDelete();
             
             $table->foreignId('vehicle_id')
                 ->constrained('vehicles', 'vehicle_id')

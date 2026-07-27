@@ -2,25 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\JobCard;
+use App\Models\LaborLog;
 use Illuminate\Http\Request;
 
-class JobCardController extends Controller
+class LaborLogController extends Controller
 {
     public function index(Request $request)
     {
-        $query = JobCard::query()->with(['workOrder']);
+        $query = LaborLog::query()->with(['task', 'technician']);
 
-        if ($request->has('work_order_id')) {
-            $query->where('work_order_id', $request->work_order_id);
+        if ($request->has('task_id')) {
+            $query->where('task_id', $request->task_id);
         }
 
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
+        if ($request->has('technician_id')) {
+            $query->where('technician_id', $request->technician_id);
         }
 
-        if ($request->has('priority')) {
-            $query->where('priority', $request->priority);
+        if ($request->has('from_date')) {
+            $query->whereDate('clock_in', '>=', $request->from_date);
+        }
+
+        if ($request->has('to_date')) {
+            $query->whereDate('clock_in', '<=', $request->to_date);
         }
 
         return $query->latest()
@@ -30,103 +34,155 @@ class JobCardController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'work_order_id' => 'required|integer|exists:work_orders,work_order_id',
-            'description' => 'nullable|string|max:255',
-            'status' => 'nullable|string|max:20',
-            'priority' => 'nullable|string|max:10',
+            'task_id' => 'required|integer|exists:job_card_tasks,task_id',
+            'technician_id' => 'required|integer|exists:users,user_id',
+            'clock_in' => 'nullable|date',
+            'clock_out' => 'nullable|date|after:clock_in',
+            'hours_logged' => 'nullable|numeric|min:0',
+            'hourly_rate' => 'nullable|numeric|min:0',
+            'labor_cost' => 'nullable|numeric|min:0',
         ]);
 
-        $jobCard = JobCard::create($validated);
-        return response()->json($jobCard, 201);
+        // Calculate hours and cost if not provided
+        if (isset($validated['clock_in']) && isset($validated['clock_out']) && !isset($validated['hours_logged'])) {
+            $start = \Carbon\Carbon::parse($validated['clock_in']);
+            $end = \Carbon\Carbon::parse($validated['clock_out']);
+            $validated['hours_logged'] = $start->diffInHours($end);
+        }
+
+        if (isset($validated['hours_logged']) && isset($validated['hourly_rate']) && !isset($validated['labor_cost'])) {
+            $validated['labor_cost'] = $validated['hours_logged'] * $validated['hourly_rate'];
+        }
+
+        $log = LaborLog::create($validated);
+        return response()->json($log, 201);
     }
 
-    public function show(JobCard $jobCard)
+    public function show(LaborLog $laborLog)
     {
-        return $jobCard->load([
-            'workOrder',
-            'tasks' => function ($query) {
-                $query->with(['technician', 'laborLogs']);
-            },
-            'partsRequisitions' => function ($query) {
-                $query->with(['inventoryItem', 'requestedBy']);
-            },
-            'qualityControlChecks' => function ($query) {
-                $query->with(['inspector', 'checklistItems']);
-            },
-            'equipmentBookings'
-        ]);
+        return $laborLog->load(['task', 'technician']);
     }
 
-    public function update(Request $request, JobCard $jobCard)
+    public function update(Request $request, LaborLog $laborLog)
     {
         $validated = $request->validate([
-            'description' => 'nullable|string|max:255',
-            'status' => 'nullable|string|max:20',
-            'priority' => 'nullable|string|max:10',
+            'clock_in' => 'nullable|date',
+            'clock_out' => 'nullable|date|after:clock_in',
+            'hours_logged' => 'nullable|numeric|min:0',
+            'hourly_rate' => 'nullable|numeric|min:0',
+            'labor_cost' => 'nullable|numeric|min:0',
         ]);
 
-        $jobCard->update($validated);
-        return $jobCard;
+        // Recalculate if needed
+        if (isset($validated['clock_in']) && isset($validated['clock_out']) && !isset($validated['hours_logged'])) {
+            $start = \Carbon\Carbon::parse($validated['clock_in']);
+            $end = \Carbon\Carbon::parse($validated['clock_out']);
+            $validated['hours_logged'] = $start->diffInHours($end);
+        }
+
+        if (isset($validated['hours_logged']) && isset($validated['hourly_rate']) && !isset($validated['labor_cost'])) {
+            $validated['labor_cost'] = $validated['hours_logged'] * $validated['hourly_rate'];
+        }
+
+        $laborLog->update($validated);
+        return $laborLog;
     }
 
-    public function destroy(JobCard $jobCard)
+    public function destroy(LaborLog $laborLog)
     {
-        $jobCard->delete();
+        $laborLog->delete();
         return response()->noContent();
     }
 
-    public function start(JobCard $jobCard)
+    public function clockIn(Request $request)
     {
-        $jobCard->update(['status' => 'in_progress']);
-        return $jobCard;
+        $validated = $request->validate([
+            'task_id' => 'required|integer|exists:job_card_tasks,task_id',
+            'technician_id' => 'required|integer|exists:users,user_id',
+            'hourly_rate' => 'nullable|numeric|min:0',
+        ]);
+
+        // Check if already clocked in
+        $existing = LaborLog::where('task_id', $validated['task_id'])
+            ->where('technician_id', $validated['technician_id'])
+            ->whereNull('clock_out')
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'message' => 'Already clocked in for this task',
+                'log' => $existing
+            ], 422);
+        }
+
+        $log = LaborLog::create([
+            'task_id' => $validated['task_id'],
+            'technician_id' => $validated['technician_id'],
+            'clock_in' => now(),
+            'hourly_rate' => $validated['hourly_rate'] ?? 50, // Default rate
+        ]);
+
+        return response()->json($log, 201);
     }
 
-    public function complete(JobCard $jobCard)
+    public function clockOut(LaborLog $laborLog)
     {
-        $jobCard->update(['status' => 'completed']);
-        return $jobCard;
+        if ($laborLog->clock_out) {
+            return response()->json([
+                'message' => 'Already clocked out',
+                'log' => $laborLog
+            ], 422);
+        }
+
+        $laborLog->update([
+            'clock_out' => now(),
+        ]);
+
+        // Calculate hours and cost
+        $start = \Carbon\Carbon::parse($laborLog->clock_in);
+        $end = \Carbon\Carbon::parse($laborLog->clock_out);
+        $hours = $start->diffInHours($end);
+
+        $laborLog->update([
+            'hours_logged' => $hours,
+            'labor_cost' => $hours * $laborLog->hourly_rate,
+        ]);
+
+        return $laborLog;
     }
 
-    public function getByWorkOrder($workOrderId)
+    public function getByTechnician($technicianId)
     {
-        $jobCards = JobCard::where('work_order_id', $workOrderId)
-            ->with(['tasks'])
+        $logs = LaborLog::where('technician_id', $technicianId)
+            ->with(['task'])
             ->latest()
             ->get();
-        return $jobCards;
+        return $logs;
     }
 
-    public function getByStatus($status)
+    public function getByTask($taskId)
     {
-        $jobCards = JobCard::where('status', $status)
-            ->with(['workOrder'])
+        $logs = LaborLog::where('task_id', $taskId)
+            ->with(['technician'])
             ->latest()
             ->get();
-        return $jobCards;
+        return $logs;
     }
 
-    public function getByPriority($priority)
+    public function getTotalHours($technicianId)
     {
-        $jobCards = JobCard::where('priority', $priority)
-            ->with(['workOrder'])
-            ->latest()
-            ->get();
-        return $jobCards;
-    }
+        $totalHours = LaborLog::where('technician_id', $technicianId)
+            ->whereNotNull('hours_logged')
+            ->sum('hours_logged');
 
-    public function getProgress(JobCard $jobCard)
-    {
-        $totalTasks = $jobCard->tasks()->count();
-        $completedTasks = $jobCard->tasks()->where('status', 'done')->count();
-
-        $progress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100, 2) : 0;
+        $totalCost = LaborLog::where('technician_id', $technicianId)
+            ->whereNotNull('labor_cost')
+            ->sum('labor_cost');
 
         return response()->json([
-            'job_card_id' => $jobCard->job_card_id,
-            'status' => $jobCard->status,
-            'total_tasks' => $totalTasks,
-            'completed_tasks' => $completedTasks,
-            'progress' => $progress . '%',
+            'technician_id' => $technicianId,
+            'total_hours' => $totalHours,
+            'total_cost' => $totalCost,
         ]);
     }
 }

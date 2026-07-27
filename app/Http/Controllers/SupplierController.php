@@ -2,23 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SupplierContract;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 
-class SupplierContractController extends Controller
+class SupplierController extends Controller
 {
     public function index(Request $request)
     {
-        $query = SupplierContract::query()->with(['supplier', 'document']);
+        $query = Supplier::query();
 
-        if ($request->has('supplier_id')) {
-            $query->where('supplier_id', $request->supplier_id);
-        }
-
-        if ($request->has('expiring_soon')) {
-            $days = $request->integer('expiring_soon', 30);
-            $query->where('end_date', '<=', now()->addDays($days))
-                ->where('end_date', '>=', now());
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('contact_person', 'like', '%' . $search . '%')
+                  ->orWhere('email', 'like', '%' . $search . '%');
+            });
         }
 
         return $query->latest()
@@ -28,65 +27,77 @@ class SupplierContractController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'supplier_id' => 'required|integer|exists:suppliers,supplier_id',
-            'document_id' => 'required|integer|exists:documents,document_id',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after:start_date',
+            'name' => 'required|string|max:150',
+            'contact_person' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:30',
+            'email' => 'nullable|string|email|max:100',
+            'address' => 'nullable|string|max:255',
+            'payment_terms' => 'nullable|string|max:50',
+            'lead_time_days' => 'nullable|integer|min:0',
         ]);
 
-        $contract = SupplierContract::create($validated);
-        return response()->json($contract, 201);
+        $supplier = Supplier::create($validated);
+        return response()->json($supplier, 201);
     }
 
-    public function show(SupplierContract $supplierContract)
+    public function show(Supplier $supplier)
     {
-        return $supplierContract->load(['supplier', 'document']);
+        return $supplier->load([
+            'priceLists' => function ($query) {
+                $query->with(['items']);
+            },
+            'performanceScores',
+            'contracts' => function ($query) {
+                $query->with(['document']);
+            },
+            'purchaseOrders' => function ($query) {
+                $query->latest()->limit(10);
+            }
+        ]);
     }
 
-    public function update(Request $request, SupplierContract $supplierContract)
+    public function update(Request $request, Supplier $supplier)
     {
         $validated = $request->validate([
-            'document_id' => 'sometimes|required|integer|exists:documents,document_id',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after:start_date',
+            'name' => 'sometimes|required|string|max:150',
+            'contact_person' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:30',
+            'email' => 'nullable|string|email|max:100',
+            'address' => 'nullable|string|max:255',
+            'payment_terms' => 'nullable|string|max:50',
+            'lead_time_days' => 'nullable|integer|min:0',
         ]);
 
-        $supplierContract->update($validated);
-        return $supplierContract;
+        $supplier->update($validated);
+        return $supplier;
     }
 
-    public function destroy(SupplierContract $supplierContract)
+    public function destroy(Supplier $supplier)
     {
-        $supplierContract->delete();
+        // Check if supplier has purchase orders
+        if ($supplier->purchaseOrders()->exists()) {
+            return response()->json([
+                'message' => 'Cannot delete supplier with existing purchase orders'
+            ], 422);
+        }
+
+        $supplier->delete();
         return response()->noContent();
     }
 
-    public function getActive($supplierId)
+    public function getPerformanceSummary($id)
     {
-        $contracts = SupplierContract::where('supplier_id', $supplierId)
-            ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
-            ->with(['document'])
-            ->get();
-        return $contracts;
-    }
+        $supplier = Supplier::with(['performanceScores'])->findOrFail($id);
+        
+        $average = [
+            'on_time_delivery' => $supplier->performanceScores->avg('on_time_delivery_pct'),
+            'quality' => $supplier->performanceScores->avg('quality_score'),
+            'pricing' => $supplier->performanceScores->avg('pricing_score'),
+        ];
 
-    public function getExpiringSoon($days = 30)
-    {
-        $contracts = SupplierContract::with(['supplier'])
-            ->where('end_date', '<=', now()->addDays($days))
-            ->where('end_date', '>=', now())
-            ->orderBy('end_date', 'asc')
-            ->get();
-        return $contracts;
-    }
-
-    public function getExpired()
-    {
-        $contracts = SupplierContract::with(['supplier'])
-            ->where('end_date', '<', now())
-            ->orderBy('end_date', 'asc')
-            ->get();
-        return $contracts;
+        return response()->json([
+            'supplier' => $supplier,
+            'average_scores' => $average,
+        ]);
     }
 }
