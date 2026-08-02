@@ -68,7 +68,6 @@ class CustomerController extends Controller
             'customer_type' => 'nullable|string|max:20',
             'name' => 'sometimes|required|string|max:150',
             'phone' => 'nullable|string|max:30',
-            'email' => 'nullable|string|email|max:100',
             'address' => 'nullable|string|max:255',
             'segment' => 'nullable|string|max:30',
             'branch_id' => 'sometimes|required|integer|exists:branches,branch_id',
