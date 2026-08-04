@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+    /**
+     * Login user - Handles both staff and customers
+     * Role determines which dashboard they see
+     */
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -26,7 +30,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // ✅ Use Auth::attempt with session
+        // Attempt login
         if (!Auth::attempt($request->only('email', 'password'), $request->boolean('remember_me'))) {
             return response()->json([
                 'message' => 'Invalid credentials'
@@ -35,6 +39,7 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
+        // Check if account is active
         if (!$user->is_active) {
             Auth::logout();
             return response()->json([
@@ -42,17 +47,40 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // ✅ Regenerate session - now works because session is started
+        // Regenerate session
         $request->session()->regenerate();
 
+        // Update last login
         $user->update(['last_login_at' => now()]);
+
+        // Determine user type for frontend
+        $userType = $this->getUserType($user);
 
         return response()->json([
             'message' => 'Login successful',
-            'user' => $user->load(['employee', 'branch', 'roles.permissions']),
+            'user' => $user->load(['employee', 'branch', 'roles']),
+            'user_type' => $userType, // 'owner', 'admin', 'supervisor', 'technician', 'customer'
+            'redirect' => $this->getRedirectRoute($userType),
         ]);
     }
 
+    /**
+     * Get authenticated user
+     */
+    public function me(Request $request)
+    {
+        $user = $request->user()->load(['employee', 'branch', 'roles']);
+        $userType = $this->getUserType($user);
+
+        return response()->json([
+            'user' => $user,
+            'user_type' => $userType,
+        ]);
+    }
+
+    /**
+     * Logout user
+     */
     public function logout(Request $request)
     {
         Auth::guard('web')->logout();
@@ -65,13 +93,9 @@ class AuthController extends Controller
         ]);
     }
 
-    public function me(Request $request)
-    {
-        return response()->json([
-            'user' => $request->user()->load(['employee', 'branch', 'roles.permissions'])
-        ]);
-    }
-
+    /**
+     * Change password
+     */
     public function changePassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -103,6 +127,9 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Forgot password - send reset link
+     */
     public function forgotPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -129,6 +156,9 @@ class AuthController extends Controller
         ], 422);
     }
 
+    /**
+     * Reset password
+     */
     public function resetPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -162,5 +192,45 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Invalid token or email'
         ], 422);
+    }
+
+    /**
+     * Determine user type based on roles
+     */
+    private function getUserType($user)
+    {
+        $roles = $user->roles->pluck('name')->toArray();
+
+        if (in_array('Owner', $roles)) return 'owner';
+        if (in_array('Admin', $roles)) return 'admin';
+        if (in_array('Supervisor', $roles)) return 'supervisor';
+        if (in_array('Manager', $roles)) return 'manager';
+        if (in_array('Finance', $roles)) return 'finance';
+        if (in_array('HR', $roles)) return 'hr';
+        if (in_array('Technician', $roles)) return 'technician';
+        if (in_array('Service Advisor', $roles)) return 'service_advisor';
+        if (in_array('Customer', $roles)) return 'customer';
+        if (in_array('Viewer', $roles)) return 'viewer';
+
+        return 'employee';
+    }
+
+    private function getRedirectRoute($userType)
+    {
+        $routes = [
+            'owner' => '/owner/dashboard',
+            'admin' => '/admin/dashboard',
+            'supervisor' => '/hr/dashboard',
+            'manager' => '/manager/dashboard',
+            'finance' => '/finance/dashboard',
+            'hr' => '/hr/dashboard',
+            'technician' => '/technician/dashboard',
+            'service_advisor' => '/service-advisor/dashboard',
+            'customer' => '/customer/dashboard',
+            'viewer' => '/dashboard',
+            'employee' => '/dashboard',
+        ];
+
+        return $routes[$userType] ?? '/dashboard';
     }
 }

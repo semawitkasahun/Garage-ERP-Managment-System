@@ -11,6 +11,7 @@ class VehicleCheckin extends Model
 
     protected $table = 'vehicle_checkins';
     protected $primaryKey = 'checkin_id';
+    public $timestamps = false; // no created_at/updated_at columns on this table — only checked_in_at
 
     protected $fillable = [
         'appointment_id',
@@ -63,11 +64,11 @@ class VehicleCheckin extends Model
 
     public function media()
     {
-        return $this->hasMany(CheckinMedia::class, 'checkin_id');//this is the foreign key in the checkin_media table and the primary key in the vehicle_checkins table
+        return $this->hasMany(CheckinMedia::class, 'checkin_id');
     }
 
     public function inspections()
     {
-        return $this->hasMany(Inspection::class, 'checkin_id');//this is the foreign key in the inspections table and the primary key in the vehicle_checkins table
+        return $this->hasMany(Inspection::class, 'checkin_id');
     }
 }

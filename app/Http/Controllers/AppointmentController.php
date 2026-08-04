@@ -4,169 +4,223 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class AppointmentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Appointment::query()->with(['customer', 'vehicle', 'branch', 'bay', 'technician']);
+        $validator = Validator::make($request->all(), [
+            'date'       => 'required_without_all:start_date,end_date|date_format:Y-m-d',
+            'start_date' => 'required_with:end_date|date_format:Y-m-d',
+            'end_date'   => 'required_with:start_date|date_format:Y-m-d|after_or_equal:start_date',
+            'branch_id'  => 'nullable|integer|exists:branches,branch_id',
+            'status'     => 'nullable|string',
+        ]);
 
-        if ($request->has('customer_id')) {
-            $query->where('customer_id', $request->customer_id);
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
 
-        if ($request->has('vehicle_id')) {
-            $query->where('vehicle_id', $request->vehicle_id);
-        }
+        $branchId = $request->input('branch_id', $request->user()->branch_id);
 
-        if ($request->has('branch_id')) {
-            $query->where('branch_id', $request->branch_id);
-        }
+        $rangeStart = $request->filled('start_date')
+            ? $request->start_date . ' 00:00:00'
+            : $request->date . ' 00:00:00';
+        $rangeEnd = $request->filled('end_date')
+            ? $request->end_date . ' 23:59:59'
+            : $request->date . ' 23:59:59';
 
-        if ($request->has('status')) {
+        $query = Appointment::with(['customer', 'vehicle', 'bay', 'technician.employee'])
+            ->where('branch_id', $branchId)
+            ->whereBetween('scheduled_start', [$rangeStart, $rangeEnd]);
+
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('technician_id')) {
-            $query->where('technician_id', $request->technician_id);
+        return $query->orderBy('scheduled_start')->get();
+    }
+
+    public function technicians(Request $request)
+    {
+        $branchId = $request->input('branch_id', $request->user()?->branch_id);
+
+        $query = \App\Models\User::where(function ($q) {
+            $q->whereHas('roles', fn ($r) => $r->where('name', 'Technician'))
+              ->orWhereHas('employee', fn ($e) => $e->where('job_title', 'LIKE', '%Technician%'));
+        })->with('employee');
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
         }
 
-        if ($request->has('from_date')) {
-            $query->whereDate('scheduled_start', '>=', $request->from_date);
-        }
+        $users = $query->get();
 
-        if ($request->has('to_date')) {
-            $query->whereDate('scheduled_start', '<=', $request->to_date);
-        }
-
-        if ($request->has('is_walkin')) {
-            $query->where('is_walkin', $request->boolean('is_walkin'));
-        }
-
-        return $query->latest()
-            ->paginate($request->integer('per_page', 20));
+        return response()->json($users->map(function ($u) {
+            $name = $u->employee ? trim("{$u->employee->first_name} {$u->employee->last_name}") : $u->username;
+            return [
+                'user_id' => $u->user_id,
+                'name' => $name,
+                'username' => $u->username,
+                'email' => $u->email,
+            ];
+        }));
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $branchId = $request->input('branch_id', $request->user()->branch_id);
+
+        $customerId = $request->customer_id;
+        if (!$customerId && ($request->filled('customer_first_name') || $request->filled('customer_name'))) {
+            $firstName = $request->customer_first_name;
+            $lastName = $request->customer_last_name;
+
+            if (!$firstName && $request->filled('customer_name')) {
+                $parts = explode(' ', trim($request->customer_name), 2);
+                $firstName = $parts[0];
+                $lastName = $parts[1] ?? 'Customer';
+            }
+
+            $customer = \App\Models\Customer::create([
+                'first_name' => $firstName,
+                'last_name' => $lastName ?? 'Customer',
+                'email' => $request->customer_email,
+                'phone' => $request->customer_phone,
+                'address' => $request->customer_address,
+                'customer_type' => 'individual',
+                'segment' => 'regular',
+                'branch_id' => $branchId,
+                'opt_in_sms' => false,
+                'opt_in_email' => true,
+            ]);
+            $customerId = $customer->customer_id;
+        }
+
+        $vehicleId = $request->vehicle_id;
+        if (!$vehicleId && ($request->filled('vin') || $request->filled('vehicle_vin') || $request->filled('vehicle_make') || $request->filled('vehicle_name'))) {
+            $vin = $request->vehicle_vin ?: $request->vin ?: ('VIN' . strtoupper(substr(md5(microtime()), 0, 10)));
+            $make = $request->vehicle_make;
+            $model = $request->vehicle_model;
+            $year = $request->vehicle_year ?: (int) date('Y');
+            $plateNumber = $request->vehicle_plate_number;
+            $mileage = $request->vehicle_mileage;
+
+            if (!$make && $request->filled('vehicle_name')) {
+                $vParts = explode(' ', trim($request->vehicle_name), 2);
+                $make = $vParts[0] ?? 'Generic';
+                $model = $vParts[1] ?? 'Car';
+            }
+
+            $existingVehicle = \App\Models\Vehicle::where('vin', $vin)->first();
+            if ($existingVehicle) {
+                $vehicleId = $existingVehicle->vehicle_id;
+            } else {
+                $vehicle = \App\Models\Vehicle::create([
+                    'customer_id' => $customerId,
+                    'vin' => $vin,
+                    'make' => $make ?? 'Generic',
+                    'model' => $model ?? 'Car',
+                    'year' => (int) $year,
+                    'plate_number' => $plateNumber,
+                    'mileage' => $mileage ? (int) $mileage : null,
+                ]);
+                $vehicleId = $vehicle->vehicle_id;
+            }
+        }
+
+        $techId = $request->technician_id;
+        if (!$techId && $request->filled('technician_name')) {
+            $techUser = \App\Models\User::whereHas('employee', function ($q) use ($request) {
+                $q->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ['%' . $request->technician_name . '%']);
+            })->orWhere('username', 'LIKE', '%' . $request->technician_name . '%')->first();
+
+            if ($techUser) {
+                $techId = $techUser->user_id;
+            } else {
+                return response()->json([
+                    'message' => 'Technician does not exist.',
+                    'errors'  => ['technician_name' => ['The technician "' . $request->technician_name . '" does not exist.']],
+                ], 422);
+            }
+        }
+
+        $dataToValidate = array_merge($request->all(), [
+            'customer_id' => $customerId,
+            'vehicle_id' => $vehicleId,
+            'technician_id' => $techId,
+        ]);
+
+        $validator = Validator::make($dataToValidate, [
             'customer_id' => 'required|integer|exists:customers,customer_id',
             'vehicle_id' => 'required|integer|exists:vehicles,vehicle_id',
-            'branch_id' => 'required|integer|exists:branches,branch_id',
+            'branch_id' => 'nullable|integer|exists:branches,branch_id',
             'bay_id' => 'nullable|integer|exists:bays,bay_id',
             'technician_id' => 'nullable|integer|exists:users,user_id',
-            'service_type' => 'nullable|string|max:50',
+            'service_type' => 'required|string',
             'scheduled_start' => 'required|date',
             'scheduled_end' => 'nullable|date|after:scheduled_start',
-            'status' => 'nullable|string|max:20',
             'is_walkin' => 'sometimes|boolean',
         ]);
 
-        // Set default status if not provided
-        if (!isset($validated['status'])) {
-            $validated['status'] = 'booked';
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
 
-        $appointment = Appointment::create($validated);
-        return response()->json($appointment, 201);
-    }
+        $start = $request->scheduled_start;
+        $end = $request->scheduled_end ?? date('Y-m-d H:i:s', strtotime($start . ' +1 hour'));
 
-    public function show(Appointment $appointment)
-    {
-        return $appointment->load([
-            'customer',
-            'vehicle',
-            'branch',
-            'bay',
-            'technician',
-            'vehicleCheckins'
+        // Prevent double-booking the same bay
+        if ($request->filled('bay_id')) {
+            $conflict = Appointment::where('bay_id', $request->bay_id)
+                ->whereIn('status', ['booked', 'confirmed'])
+                ->where(fn ($q) => $q->where('scheduled_start', '<', $end)->where('scheduled_end', '>', $start))
+                ->exists();
+
+            if ($conflict) {
+                return response()->json(['message' => 'This bay is already booked for the selected time.'], 422);
+            }
+        }
+
+        $appointment = Appointment::create([
+            'customer_id' => $customerId,
+            'vehicle_id' => $vehicleId,
+            'branch_id' => $branchId,
+            'bay_id' => $request->bay_id,
+            'technician_id' => $techId,
+            'service_type' => $request->service_type,
+            'scheduled_start' => $start,
+            'scheduled_end' => $end,
+            'status' => 'booked',
+            'is_walkin' => $request->boolean('is_walkin', false),
         ]);
+
+        return response()->json([
+            'message' => 'Appointment booked successfully',
+            'appointment' => $appointment->load(['customer', 'vehicle', 'bay', 'technician']),
+        ], 201);
     }
 
     public function update(Request $request, Appointment $appointment)
     {
-        $validated = $request->validate([
-            'customer_id' => 'sometimes|required|integer|exists:customers,customer_id',
-            'vehicle_id' => 'sometimes|required|integer|exists:vehicles,vehicle_id',
-            'branch_id' => 'sometimes|required|integer|exists:branches,branch_id',
-            'bay_id' => 'nullable|integer|exists:bays,bay_id',
-            'technician_id' => 'nullable|integer|exists:users,user_id',
-            'service_type' => 'nullable|string|max:50',
-            'scheduled_start' => 'sometimes|required|date',
-            'scheduled_end' => 'nullable|date|after:scheduled_start',
-            'status' => 'nullable|string|max:20',
-            'is_walkin' => 'sometimes|boolean',
+        $validator = Validator::make($request->all(), [
+            'status' => 'sometimes|in:booked,confirmed,checked_in,in_progress,completed,cancelled,no_show',
+            'bay_id' => 'sometimes|nullable|integer|exists:bays,bay_id',
+            'technician_id' => 'sometimes|nullable|integer|exists:users,user_id',
+            'scheduled_start' => 'sometimes|date',
+            'scheduled_end' => 'sometimes|date|after:scheduled_start',
         ]);
 
-        $appointment->update($validated);
-        return $appointment;
-    }
-
-    public function destroy(Appointment $appointment)
-    {
-        $appointment->delete();
-        return response()->noContent();
-    }
-
-    public function confirm(Appointment $appointment)
-    {
-        $appointment->update(['status' => 'confirmed']);
-        return $appointment;
-    }
-
-    public function cancel(Appointment $appointment)
-    {
-        $appointment->update(['status' => 'cancelled']);
-        return $appointment;
-    }
-
-    public function complete(Appointment $appointment)
-    {
-        $appointment->update(['status' => 'completed']);
-        return $appointment;
-    }
-
-    public function getCalendarEvents(Request $request)
-    {
-        $validated = $request->validate([
-            'start' => 'required|date',
-            'end' => 'required|date|after:start',
-            'branch_id' => 'nullable|integer|exists:branches,branch_id',
-        ]);
-
-        $query = Appointment::with(['customer', 'vehicle', 'technician'])
-            ->whereBetween('scheduled_start', [$validated['start'], $validated['end']]);
-
-        if (isset($validated['branch_id'])) {
-            $query->where('branch_id', $validated['branch_id']);
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
 
-        $appointments = $query->get();
+        $appointment->update($request->only(['status', 'bay_id', 'technician_id', 'scheduled_start', 'scheduled_end']));
 
-        return $appointments->map(function ($appointment) {
-            return [
-                'id' => $appointment->appointment_id,
-                'title' => $appointment->customer->name . ' - ' . ($appointment->service_type ?? 'Service'),
-                'start' => $appointment->scheduled_start,
-                'end' => $appointment->scheduled_end,
-                'status' => $appointment->status,
-                'customer' => $appointment->customer->name,
-                'vehicle' => $appointment->vehicle->plate_number ?? $appointment->vehicle->make . ' ' . $appointment->vehicle->model,
-                'technician' => $appointment->technician?->name,
-                'color' => $this->getStatusColor($appointment->status),
-            ];
-        });
-    }
-
-    private function getStatusColor($status)
-    {
-        $colors = [
-            'booked' => '#3490dc',
-            'confirmed' => '#38c172',
-            'cancelled' => '#e3342f',
-            'completed' => '#6cb2eb',
-            'no_show' => '#ffed4a',
-        ];
-        return $colors[$status] ?? '#6c757d';
+        return response()->json([
+            'message' => 'Appointment updated successfully',
+            'appointment' => $appointment->load(['customer', 'vehicle', 'bay', 'technician']),
+        ]);
     }
 }

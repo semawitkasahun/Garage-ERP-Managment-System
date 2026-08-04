@@ -12,10 +12,19 @@ use Illuminate\Support\Facades\Validator;
 class UserController extends Controller
 {
     /**
-     * List all users (Admin only)
+     * List all users (Admin/Owner only)
      */
     public function index(Request $request)
     {
+        $user = auth()->user();
+
+        // Only Admin and Owner can list users
+        if (!$user->hasAnyRole(['Admin', 'Owner'])) {
+            return response()->json([
+                'message' => 'Unauthorized. Admin or Owner role required.'
+            ], 403);
+        }
+
         $query = User::query()->with(['employee', 'branch', 'roles']);
 
         if ($request->has('search')) {
@@ -45,10 +54,18 @@ class UserController extends Controller
     }
 
     /**
-     * Create a new user (Admin only)
+     * Create a new user (Admin/Owner only)
      */
     public function store(Request $request)
     {
+        $user = auth()->user();
+
+        if (!$user->hasAnyRole(['Admin', 'Owner'])) {
+            return response()->json([
+                'message' => 'Unauthorized. Admin or Owner role required.'
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'username' => 'required|string|max:50|unique:users,username',
             'email' => 'required|string|email|max:100|unique:users,email',
@@ -101,6 +118,16 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
+        $currentUser = auth()->user();
+
+        // Only Admin/Owner can view other users
+        if ($currentUser->user_id !== $user->user_id &&
+            !$currentUser->hasAnyRole(['Admin', 'Owner'])) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
         return $user->load(['employee', 'branch', 'roles.permissions']);
     }
 
@@ -109,6 +136,16 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        $currentUser = auth()->user();
+
+        // Only Admin/Owner can update other users
+        if ($currentUser->user_id !== $user->user_id &&
+            !$currentUser->hasAnyRole(['Admin', 'Owner'])) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'username' => 'sometimes|required|string|max:50|unique:users,username,' . $user->user_id . ',user_id',
             'email' => 'sometimes|required|string|email|max:100|unique:users,email,' . $user->user_id . ',user_id',
@@ -129,11 +166,13 @@ class UserController extends Controller
 
         // Update employee if needed
         if ($request->has('first_name') || $request->has('last_name') || $request->has('job_title')) {
-            $user->employee->update([
-                'first_name' => $request->first_name ?? $user->employee->first_name,
-                'last_name' => $request->last_name ?? $user->employee->last_name,
-                'job_title' => $request->job_title ?? $user->employee->job_title,
-            ]);
+            if ($user->employee) {
+                $user->employee->update([
+                    'first_name' => $request->first_name ?? $user->employee->first_name,
+                    'last_name' => $request->last_name ?? $user->employee->last_name,
+                    'job_title' => $request->job_title ?? $user->employee->job_title,
+                ]);
+            }
         }
 
         // Update user
@@ -155,10 +194,26 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
+        $currentUser = auth()->user();
+
+        // Only Admin/Owner can delete users
+        if (!$currentUser->hasAnyRole(['Admin', 'Owner'])) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
         // Prevent deleting yourself
-        if (auth()->id() === $user->user_id) {
+        if ($currentUser->user_id === $user->user_id) {
             return response()->json([
                 'message' => 'Cannot delete your own account'
+            ], 422);
+        }
+
+        // Prevent deleting Owner
+        if ($user->hasRole('Owner')) {
+            return response()->json([
+                'message' => 'Cannot delete Owner account'
             ], 422);
         }
 
@@ -174,6 +229,14 @@ class UserController extends Controller
      */
     public function assignRoles(Request $request, User $user)
     {
+        $currentUser = auth()->user();
+
+        if (!$currentUser->hasAnyRole(['Admin', 'Owner'])) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'role_ids' => 'required|array',
             'role_ids.*' => 'integer|exists:roles,role_id',
@@ -184,6 +247,14 @@ class UserController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
+        }
+
+        // Prevent assigning Owner role to non-Owner
+        $ownerRole = Role::where('name', 'Owner')->first();
+        if ($ownerRole && in_array($ownerRole->role_id, $request->role_ids) && !$currentUser->hasRole('Owner')) {
+            return response()->json([
+                'message' => 'Only Owner can assign Owner role'
+            ], 403);
         }
 
         $user->roles()->sync($request->role_ids);
@@ -199,10 +270,24 @@ class UserController extends Controller
      */
     public function toggleStatus(User $user)
     {
-        if (auth()->id() === $user->user_id) {
+        $currentUser = auth()->user();
+
+        if (!$currentUser->hasAnyRole(['Admin', 'Owner'])) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        if ($currentUser->user_id === $user->user_id) {
             return response()->json([
                 'message' => 'Cannot deactivate your own account'
             ], 422);
+        }
+
+        if ($user->hasRole('Owner') && !$currentUser->hasRole('Owner')) {
+            return response()->json([
+                'message' => 'Only Owner can deactivate Owner account'
+            ], 403);
         }
 
         $user->update([

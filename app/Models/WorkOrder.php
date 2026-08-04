@@ -50,6 +50,10 @@ class WorkOrder extends Model
     {
         return $this->hasMany(JobCard::class, 'work_order_id');//what job cards are associated with this work order through the work_order_id foreign key and a work order can have multiple job cards because a work order can have multiple inspections and each inspection can have multiple job cards
     }
+    public function appointment()
+    {
+        return $this->belongsTo(Appointment::class, 'appointment_id', 'appointment_id');
+    }
 
     public function delivery()
     {
