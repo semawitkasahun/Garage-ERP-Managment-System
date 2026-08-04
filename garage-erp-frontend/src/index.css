@@ -1,0 +1,64 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+
+@theme {
+    --color-background: hsl(var(--background));
+    --color-foreground: hsl(var(--foreground));
+    --color-card: hsl(var(--card));
+    --color-card-foreground: hsl(var(--card-foreground));
+    --color-popover: hsl(var(--popover));
+    --color-popover-foreground: hsl(var(--popover-foreground));
+    --color-primary: hsl(var(--primary));
+    --color-primary-foreground: hsl(var(--primary-foreground));
+    --color-secondary: hsl(var(--secondary));
+    --color-secondary-foreground: hsl(var(--secondary-foreground));
+    --color-muted: hsl(var(--muted));
+    --color-muted-foreground: hsl(var(--muted-foreground));
+    --color-accent: hsl(var(--accent));
+    --color-accent-foreground: hsl(var(--accent-foreground));
+    --color-destructive: hsl(var(--destructive));
+    --color-destructive-foreground: hsl(var(--destructive-foreground));
+    --color-border: hsl(var(--border));
+    --color-input: hsl(var(--input));
+    --color-ring: hsl(var(--ring));
+
+    --font-display: "Space Grotesk", sans-serif;
+    --font-sans: "Inter", sans-serif;
+    --font-mono: "IBM Plex Mono", monospace;
+}
+
+@layer base {
+    :root {
+        --background: 45 30% 97%;
+        --foreground: 90 15% 12%;
+        --card: 45 30% 99%;
+        --card-foreground: 90 15% 12%;
+        --popover: 45 30% 99%;
+        --popover-foreground: 90 15% 12%;
+        --primary: 84 25% 30%;
+        --primary-foreground: 45 30% 97%;
+        --secondary: 45 18% 91%;
+        --secondary-foreground: 90 15% 15%;
+        --muted: 45 15% 93%;
+        --muted-foreground: 90 8% 42%;
+        --accent: 84 20% 89%;
+        --accent-foreground: 90 15% 15%;
+        --destructive: 0 65% 48%;
+        --destructive-foreground: 45 30% 97%;
+        --border: 45 15% 87%;
+        --input: 45 15% 87%;
+        --ring: 84 25% 40%;
+        --radius: 0.5rem;
+    }
+}
+
+@layer base {
+    * {
+        border-color: hsl(var(--border));
+    }
+    body {
+        background-color: hsl(var(--background));
+        color: hsl(var(--foreground));
+        font-family: var(--font-sans);
+    }
+}
