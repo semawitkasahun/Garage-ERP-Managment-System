@@ -3,10 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { Search, Bell, LogOut, Menu, X } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/authStore';
 
-export function DashboardLayout({ navSections, pageTitle, roleLabel, children }) {
+export function DashboardLayout({ navSections = [], pageTitle, roleLabel, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuthStore();
   const location = useLocation();
+  const sections = Array.isArray(navSections) ? navSections : [];
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -31,13 +32,13 @@ export function DashboardLayout({ navSections, pageTitle, roleLabel, children })
         </div>
 
         <nav className="px-3 pb-6">
-          {navSections.map((section) => (
+          {sections.map((section) => (
             <div key={section.label} className="mb-5">
               <p className="px-3 mb-1.5 font-mono text-[10px] tracking-[0.14em] uppercase" style={{ color: 'hsl(84 15% 40%)' }}>
                 {section.label}
               </p>
               <div className="space-y-0.5">
-                {section.items.map((item) => {
+                {(section.items ?? []).map((item) => {
                   const active = location.pathname === item.path;
                   const Icon = item.icon;
 

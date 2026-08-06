@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, ClipboardCheck, Users, UserPlus,
+  LayoutDashboard, CalendarDays, ClipboardCheck, Users, UserPlus,
   Car, FileText, Wrench, ShieldCheck, Package, Truck, ShoppingCart,
   Receipt, CreditCard, Landmark, UserCog, KeyRound, Boxes, BarChart3,
   Settings, DollarSign, AlertTriangle,
@@ -11,8 +11,9 @@ const NAV_SECTIONS = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/owner/dashboard' },
   ]},
   { label: 'Front Desk', items: [
-    { label: 'Check-In', icon: ClipboardCheck, disabled: true },
-    { label: 'Customers', icon: Users, disabled: true },
+    { label: 'Appointments', icon: CalendarDays, path: '/appointments' },
+    { label: 'Check-In', icon: ClipboardCheck, path: '/checkins/new' },
+    { label: 'Customers', icon: Users, path: '/customers' },
     { label: 'Leads', icon: UserPlus, disabled: true },
   ]},
   { label: 'Service', items: [

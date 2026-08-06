@@ -30,6 +30,14 @@ class Customer extends Model
         'opt_in_email' => 'boolean',
     ];
 
+    protected $appends = ['name'];
+
+    public function getNameAttribute()
+    {
+        $fullName = trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+        return $fullName ?: ($this->attributes['name'] ?? '');
+    }
+
     // Relationships
     public function branch()
     {

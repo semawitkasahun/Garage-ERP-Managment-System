@@ -21,6 +21,7 @@ use App\Http\Controllers\Dashboard\ManagerDashboardController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\BayController;
 use App\Http\Controllers\VehicleCheckinController;
+use App\Http\Controllers\LeadController;
 
 /*
 |--------------------------------------------------------------------------
@@ -79,14 +80,18 @@ Route::middleware('auth:sanctum')->group(function () {
     | Customer Creation Routes (Technician + Higher)
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:Technician,Service Advisor,Manager,Supervisor,Admin,Owner')
-        ->prefix('customers')
-        ->group(function () {
-            Route::get('/', [CustomerController::class, 'index']);
-            Route::post('/', [CustomerController::class, 'store']);
-            Route::post('/{customer}/send-credentials', [CustomerController::class, 'sendCredentials']);
-            Route::get('/search', [CustomerController::class, 'search']);
-        });
+Route::middleware('role:Technician,Service Advisor,Manager,Supervisor,Admin,Owner')
+    ->prefix('customers')
+    ->group(function () {
+        Route::get('/', [CustomerController::class, 'index']);
+        Route::post('/', [CustomerController::class, 'store']);
+        Route::get('/stats', [CustomerController::class, 'stats']);
+        Route::get('/search', [CustomerController::class, 'search']);
+        Route::get('/{customer}', [CustomerController::class, 'show']);
+        Route::patch('/{customer}', [CustomerController::class, 'update']);
+        Route::delete('/{customer}', [CustomerController::class, 'destroy']);
+        Route::post('/{customer}/send-credentials', [CustomerController::class, 'sendCredentials']);
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -98,7 +103,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/revenue-chart', [OwnerDashboardController::class, 'revenueChart']);
         Route::get('/kpis', [OwnerDashboardController::class, 'kpis']);
     });
-
+    Route::middleware('role:Service Advisor,Manager,Supervisor,Admin,Owner')
+    ->prefix('leads')
+    ->group(function () {
+        Route::get('/', [LeadController::class, 'index']);
+        Route::post('/', [LeadController::class, 'store']);
+        Route::get('/stats', [LeadController::class, 'stats']);
+        Route::get('/{lead}', [LeadController::class, 'show']);
+        Route::patch('/{lead}', [LeadController::class, 'update']);
+        Route::delete('/{lead}', [LeadController::class, 'destroy']);
+        Route::post('/{lead}/followups', [LeadController::class, 'addFollowup']);
+        Route::post('/{lead}/convert', [LeadController::class, 'convertToCustomer']);
+        Route::patch('/{lead}/mark-lost', [LeadController::class, 'markLost']);
+});
     /*
     |--------------------------------------------------------------------------
     | HR Dashboard (Supervisor)

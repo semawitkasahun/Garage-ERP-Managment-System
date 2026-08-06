@@ -7,43 +7,57 @@ import {
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 
 const NAV_SECTIONS = [
-  { label: 'Overview', items: [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
-  ]},
-  { label: 'Front Desk', items: [
-    { label: 'Appointments', icon: CalendarDays, path: '/appointments' },
-    { label: 'Check-In', icon: ClipboardCheck, path: '/checkins/new' },
-    { label: 'Customers', icon: Users, disabled: true },
-    { label: 'Leads', icon: UserPlus, disabled: true },
-  ]},
-  { label: 'Service', items: [
-    { label: 'Vehicles', icon: Car, disabled: true },
-    { label: 'Quotations', icon: FileText, disabled: true },
-    { label: 'Work Orders', icon: Wrench, disabled: true },
-    { label: 'Quality Control', icon: ShieldCheck, disabled: true },
-  ]},
-  { label: 'Inventory & Supply', items: [
-    { label: 'Inventory', icon: Package, disabled: true },
-    { label: 'Suppliers', icon: Truck, disabled: true },
-    { label: 'Purchasing', icon: ShoppingCart, disabled: true },
-    { label: 'Sales', icon: Receipt, disabled: true },
-  ]},
-  { label: 'Finance', items: [
-    { label: 'Billing & Payments', icon: CreditCard, disabled: true },
-    { label: 'Financial Management', icon: Landmark, disabled: true },
-  ]},
-  { label: 'Human Resource Management', items: [
-    { label: 'Employees', icon: UserCog, disabled: true },
-    { label: 'Users & Roles', icon: KeyRound, disabled: true },
-    { label: 'Attendance and shift scheduling', icon: KeyRound, disabled: true },
-    { label: 'Attendance and shift scheduling', icon: KeyRound, disabled: true },
-    { label: 'Leave management', icon: KeyRound, disabled: true },
-  ]},
-  { label: 'Other', items: [
-    { label: 'Assets', icon: Boxes, disabled: true },
-    { label: 'Reports', icon: BarChart3, disabled: true },
-    { label: 'Settings', icon: Settings, disabled: true },
-  ]},
+  {
+    label: 'Overview', items: [
+      { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+    ]
+  },
+  {
+    label: 'Front Desk', items: [
+      { label: 'Appointments', icon: CalendarDays, path: '/appointments' },
+      { label: 'Check-In', icon: ClipboardCheck, path: '/checkins/new' },
+      { label: 'Customers', icon: Users, path: '/customers' },
+      { label: 'Leads Management', icon: UserPlus, path: '/leads' },
+    ]
+  },
+  {
+    label: 'Service', items: [
+      { label: 'Vehicles', icon: Car, disabled: true },
+      { label: 'Quotations', icon: FileText, disabled: true },
+      { label: 'Work Orders', icon: Wrench, disabled: true },
+      { label: 'Quality Control', icon: ShieldCheck, disabled: true },
+    ]
+  },
+  {
+    label: 'Inventory & Supply', items: [
+      { label: 'Inventory', icon: Package, disabled: true },
+      { label: 'Suppliers', icon: Truck, disabled: true },
+      { label: 'Purchasing', icon: ShoppingCart, disabled: true },
+      { label: 'Sales', icon: Receipt, disabled: true },
+    ]
+  },
+  {
+    label: 'Finance', items: [
+      { label: 'Billing & Payments', icon: CreditCard, disabled: true },
+      { label: 'Financial Management', icon: Landmark, disabled: true },
+    ]
+  },
+  {
+    label: 'Human Resource Management', items: [
+      { label: 'Employees', icon: UserCog, disabled: true },
+      { label: 'Users & Roles', icon: KeyRound, disabled: true },
+      { label: 'Attendance and shift scheduling', icon: KeyRound, disabled: true },
+      { label: 'Attendance and shift scheduling', icon: KeyRound, disabled: true },
+      { label: 'Leave management', icon: KeyRound, disabled: true },
+    ]
+  },
+  {
+    label: 'Other', items: [
+      { label: 'Assets', icon: Boxes, disabled: true },
+      { label: 'Reports', icon: BarChart3, disabled: true },
+      { label: 'Settings', icon: Settings, disabled: true },
+    ]
+  },
 ];
 
 // TODO: replace with a real query, e.g. useQuery(['owner-dashboard'], fetchOwnerStats)

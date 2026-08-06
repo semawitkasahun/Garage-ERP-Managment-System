@@ -12,6 +12,10 @@ import { GenericDashboard } from '@/features/auth/pages/GenericDashboard';
 import { AppointmentsPage } from '@/features/appointments/pages/AppointmentsPage';
 import { NewAppointmentPage } from '@/features/appointments/pages/NewAppointmentPage';
 import { CheckinPage } from '@/features/checkins/pages/CheckinPage';
+import { CustomersPage } from '@/features/customers/pages/CustomersPage';
+import { CustomerDetailPage } from '@/features/customers/pages/CustomerDetailPage';
+import { LeadsPage } from '@/features/leads/pages/LeadsPage';
+import { LeadDetailPage } from '@/features/leads/pages/LeadDetailPage';
 
 export const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
@@ -26,11 +30,19 @@ export const router = createBrowserRouter([
       { path: '/appointments', element: <AppointmentsPage /> },
       { path: '/appointments/new', element: <NewAppointmentPage /> },
       { path: '/checkins/new', element: <CheckinPage /> },
+      { path: '/customers', element: <CustomersPage /> },
+      { path: '/customers/:id', element: <CustomerDetailPage /> },
     ]
   },
   {
     element: <ProtectedRoute allowedRoles={['admin']} />,
     children: [{ path: '/admin/dashboard', element: <AdminDashboard /> }],
+  },
+  {
+    element: <ProtectedRoute allowedRoles={['owner', 'admin', 'supervisor', 'manager', 'service_advisor']} />, children: [
+      { path: '/leads', element: <LeadsPage /> },
+      { path: '/leads/:leadId', element: <LeadDetailPage /> },
+    ],
   },
   {
     element: <ProtectedRoute allowedRoles={['supervisor', 'hr']} />,
