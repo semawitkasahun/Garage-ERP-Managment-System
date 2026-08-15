@@ -39,14 +39,21 @@ class LeaveRequestController extends Controller
     {
         $validated = $request->validate([
             'employee_id' => 'required|integer|exists:employees,employee_id',
-            'leave_type' => 'nullable|string|max:30',
+            'leave_type' => 'required|string|max:30',
             'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
-            'status' => 'nullable|string|max:20',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'reason' => 'required|string',
+            'attachment' => 'nullable|string',
         ]);
 
+        // Calculate days
+        $start = \Carbon\Carbon::parse($validated['start_date']);
+        $end = \Carbon\Carbon::parse($validated['end_date']);
+        $validated['days'] = $start->diffInDays($end) + 1;
+        $validated['status'] = 'pending';
+
         $leave = LeaveRequest::create($validated);
-        return response()->json($leave, 201);
+        return response()->json($leave->load('employee'), 201);
     }
 
     public function show(LeaveRequest $leaveRequest)
@@ -85,13 +92,21 @@ class LeaveRequestController extends Controller
         $leaveRequest->update([
             'status' => 'approved',
             'approved_by' => $validated['approved_by'],
+            'approved_at' => now(),
         ]);
         return $leaveRequest;
     }
 
-    public function reject(LeaveRequest $leaveRequest)
+    public function reject(Request $request, LeaveRequest $leaveRequest)
     {
-        $leaveRequest->update(['status' => 'rejected']);
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string',
+        ]);
+
+        $leaveRequest->update([
+            'status' => 'rejected',
+            'rejection_reason' => $validated['rejection_reason'],
+        ]);
         return $leaveRequest;
     }
 
@@ -120,5 +135,91 @@ class LeaveRequestController extends Controller
             ->latest()
             ->get();
         return $leaves;
+    }
+
+    /**
+     * Get leave dashboard statistics
+     */
+    public function getStats(Request $request)
+    {
+        $user = auth()->user();
+        $isAdmin = $user && $user->hasAnyRole(['Admin', 'Owner', 'HR Manager', 'Supervisor', 'Manager']);
+        $branchId = $isAdmin ? $request->input('branch_id') : $user->branch_id;
+
+        $today = now()->toDateString();
+        $thisMonth = now()->startOfMonth();
+        $nextMonth = now()->addMonth()->startOfMonth();
+
+        $base = LeaveRequest::query()->with('employee');
+        if ($branchId) {
+            $base->whereHas('employee', function ($query) use ($branchId) {
+                $query->where('branch_id', $branchId);
+            });
+        }
+
+        $totalEmployees = \App\Models\Employee::query()
+            ->when($branchId, function ($query) use ($branchId) {
+                $query->where('branch_id', $branchId);
+            })
+            ->where('employment_status', 'active')
+            ->count();
+
+        $onLeaveToday = (clone $base)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->count();
+
+        $pendingRequests = (clone $base)
+            ->where('status', 'pending')
+            ->count();
+
+        $approvedThisMonth = (clone $base)
+            ->where('status', 'approved')
+            ->whereBetween('approved_at', [$thisMonth, $nextMonth])
+            ->count();
+
+        $rejectedThisMonth = (clone $base)
+            ->where('status', 'rejected')
+            ->whereBetween('created_at', [$thisMonth, $nextMonth])
+            ->count();
+
+        // Calculate upcoming leave (approved leave starting in next 7 days)
+        $upcomingLeave = (clone $base)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '>', $today)
+            ->whereDate('start_date', '<=', now()->addDays(7))
+            ->count();
+
+        return response()->json([
+            'total_employees' => $totalEmployees,
+            'on_leave_today' => $onLeaveToday,
+            'pending_requests' => $pendingRequests,
+            'approved_this_month' => $approvedThisMonth,
+            'rejected_this_month' => $rejectedThisMonth,
+            'upcoming_leave' => $upcomingLeave,
+        ]);
+    }
+
+    /**
+     * Get today's leave requests
+     */
+    public function getTodayLeave(Request $request)
+    {
+        $query = LeaveRequest::query()->with(['employee']);
+        
+        if ($request->filled('branch_id')) {
+            $query->whereHas('employee', function ($q) use ($request) {
+                $q->where('branch_id', $request->branch_id);
+            });
+        }
+
+        $today = now()->toDateString();
+        
+        return $query->where('status', 'approved')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->latest()
+            ->get();
     }
 }

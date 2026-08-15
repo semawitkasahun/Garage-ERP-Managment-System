@@ -2,7 +2,7 @@ import {
   LayoutDashboard, CalendarDays, ClipboardCheck, Users, UserPlus,
   Car, FileText, Wrench, ShieldCheck, Package, Truck, ShoppingCart,
   Receipt, CreditCard, Landmark, UserCog, KeyRound, Boxes, BarChart3,
-  Settings, DollarSign, AlertTriangle,
+  Settings, DollarSign, AlertTriangle, CalendarClock,
 } from 'lucide-react';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 
@@ -43,12 +43,12 @@ const NAV_SECTIONS = [
     ]
   },
   {
-    label: 'Human Resource Management', items: [
-      { label: 'Employees', icon: UserCog, disabled: true },
+  label: 'Human Resource Management', items: [
+    { label: 'Employees', icon: UserCog, path: '/employees' },
       { label: 'Users & Roles', icon: KeyRound, disabled: true },
-      { label: 'Attendance and shift scheduling', icon: KeyRound, disabled: true },
-      { label: 'Attendance and shift scheduling', icon: KeyRound, disabled: true },
-      { label: 'Leave management', icon: KeyRound, disabled: true },
+      { label: 'Payroll processing ', icon: KeyRound, disabled: true },
+      { label: 'Attendance & Shifts', icon: KeyRound, path: '/attendance' },
+      { label: 'Leave Management', icon: KeyRound, path: '/leave' },
     ]
   },
   {

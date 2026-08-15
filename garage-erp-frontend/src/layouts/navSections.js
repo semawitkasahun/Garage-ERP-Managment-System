@@ -2,7 +2,7 @@ import {
   LayoutDashboard, CalendarDays, ClipboardCheck, Users, UserPlus,
   Car, FileText, Wrench, ShieldCheck, Package, Truck, ShoppingCart,
   Receipt, CreditCard, Landmark, UserCog, KeyRound, Boxes, BarChart3,
-  Settings,
+  Settings, Clock, Calendar, CalendarClock,
 } from 'lucide-react';
 
 export function getNavSections(role) {
@@ -13,6 +13,8 @@ export function getNavSections(role) {
     role === 'technician' ? '/technician/dashboard' :
     role === 'finance' ? '/finance/dashboard' :
     role === 'hr' ? '/hr/dashboard' : '/dashboard';
+
+  const canManageEmployees = role === 'hr' || role === 'admin' || role === 'owner';
 
   return [
     {
@@ -58,10 +60,10 @@ export function getNavSections(role) {
     {
       label: 'Human Resource Management',
       items: [
-        { label: 'Employees', icon: UserCog, disabled: true },
+        { label: 'Employees', icon: UserCog, path: '/employees', disabled: !canManageEmployees },
         { label: 'Users & Roles', icon: KeyRound, disabled: true },
-        { label: 'Attendance & Shifts', icon: KeyRound, disabled: true },
-        { label: 'Leave Management', icon: KeyRound, disabled: true },
+        { label: 'Attendance & Shifts', icon: Clock, path: '/attendance', disabled: !canManageEmployees },
+        { label: 'Leave Management', icon: Calendar, path: '/leave', disabled: !canManageEmployees },
       ],
     },
     {

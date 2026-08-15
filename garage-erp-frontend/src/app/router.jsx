@@ -16,6 +16,13 @@ import { CustomersPage } from '@/features/customers/pages/CustomersPage';
 import { CustomerDetailPage } from '@/features/customers/pages/CustomerDetailPage';
 import { LeadsPage } from '@/features/leads/pages/LeadsPage';
 import { LeadDetailPage } from '@/features/leads/pages/LeadDetailPage';
+import { EmployeesPage } from '@/features/employees/pages/EmployeesPage';
+import { AttendancePage } from '@/features/attendance/pages/AttendancePage';
+import { ShiftsPage } from '@/features/attendance/pages/ShiftsPage';
+import { AttendanceTerminal } from '@/features/attendance/pages/AttendanceTerminal';
+import { AttendanceScan } from '@/features/attendance/pages/AttendanceScan';
+import { LeaveDashboard } from '@/features/leave/pages/LeaveDashboard';
+
 
 export const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
@@ -34,6 +41,18 @@ export const router = createBrowserRouter([
       { path: '/customers/:id', element: <CustomerDetailPage /> },
     ]
   },
+  {
+    element: <ProtectedRoute allowedRoles={['owner', 'admin', 'supervisor', 'manager']} />,
+    children: [
+      { path: '/employees', element: <EmployeesPage /> },
+      { path: '/attendance', element: <AttendancePage /> },
+      { path: '/shifts', element: <ShiftsPage /> },
+      { path: '/attendance/terminal', element: <AttendanceTerminal /> },
+      { path: '/leave', element: <LeaveDashboard /> },
+    ]
+  },
+  // Public attendance scan route (with auth check inside component)
+  { path: '/attendance/scan', element: <AttendanceScan /> },
   {
     element: <ProtectedRoute allowedRoles={['admin']} />,
     children: [{ path: '/admin/dashboard', element: <AdminDashboard /> }],

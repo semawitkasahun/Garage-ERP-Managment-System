@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('last_name', 50)->nullable(false);
             $table->string('job_title', 50)->nullable();
             $table->date('hire_date')->nullable();
-            $table->string('phone', 30)->nullable(false);
+            $table->string('phone', 30)->nullable();
             $table->string('email', 100)->nullable();
             $table->string('employment_status', 20)->nullable();
             $table->timestamps();

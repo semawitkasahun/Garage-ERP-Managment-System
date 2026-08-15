@@ -22,6 +22,12 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\BayController;
 use App\Http\Controllers\VehicleCheckinController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\QrAttendanceController;
+use App\Http\Controllers\LeaveRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -126,6 +132,122 @@ Route::middleware('role:Technician,Service Advisor,Manager,Supervisor,Admin,Owne
         Route::get('/attendance-overview', [HRDashboardController::class, 'attendanceOverview']);
         Route::get('/employee-performance', [HRDashboardController::class, 'employeePerformance']);
         Route::get('/payroll-stats', [HRDashboardController::class, 'payrollStats']);
+    });
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager')
+    ->prefix('employees')
+    ->group(function () {
+        Route::get('/', [EmployeeController::class, 'index']);
+        Route::post('/', [EmployeeController::class, 'store']);
+        Route::get('/stats', [EmployeeController::class, 'stats']);
+        Route::get('/{employee}', [EmployeeController::class, 'show']);
+        Route::patch('/{employee}', [EmployeeController::class, 'update']);
+        Route::delete('/{employee}', [EmployeeController::class, 'destroy']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Attendance Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager')
+    ->prefix('attendance')
+    ->group(function () {
+        Route::get('/', [AttendanceController::class, 'index']);
+        Route::post('/', [AttendanceController::class, 'store']);
+        Route::get('/stats', [AttendanceController::class, 'getStats']);
+        Route::get('/summary', [AttendanceController::class, 'getSummary']);
+        Route::get('/today', [AttendanceController::class, 'getToday']);
+        Route::get('/employee/{employeeId}', [AttendanceController::class, 'getByEmployee']);
+        Route::post('/clock-in', [AttendanceController::class, 'clockIn']);
+        Route::post('/clock-out', [AttendanceController::class, 'clockOut']);
+        Route::get('/{attendance}', [AttendanceController::class, 'show']);
+        Route::patch('/{attendance}', [AttendanceController::class, 'update']);
+        Route::delete('/{attendance}', [AttendanceController::class, 'destroy']);
+        Route::post('/manual-correction', [AttendanceController::class, 'manualCorrection']);
+        Route::get('/{attendance}/corrections', [AttendanceController::class, 'getCorrections']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Shift Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager')
+    ->prefix('shifts')
+    ->group(function () {
+        Route::get('/', [ShiftController::class, 'index']);
+        Route::post('/', [ShiftController::class, 'store']);
+        Route::get('/{shift}', [ShiftController::class, 'show']);
+        Route::patch('/{shift}', [ShiftController::class, 'update']);
+        Route::delete('/{shift}', [ShiftController::class, 'destroy']);
+        Route::post('/{shift}/employees', [ShiftController::class, 'assignEmployee']);
+        Route::delete('/{shift}/employees/{employeeId}', [ShiftController::class, 'removeEmployee']);
+        Route::get('/{shift}/employees', [ShiftController::class, 'getEmployees']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Department Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager')
+    ->prefix('departments')
+    ->group(function () {
+        Route::get('/', [DepartmentController::class, 'index']);
+        Route::post('/', [DepartmentController::class, 'store']);
+        Route::get('/{department}', [DepartmentController::class, 'show']);
+        Route::patch('/{department}', [DepartmentController::class, 'update']);
+        Route::delete('/{department}', [DepartmentController::class, 'destroy']);
+        Route::get('/{department}/employees', [DepartmentController::class, 'getEmployees']);
+        Route::get('/{department}/shifts', [DepartmentController::class, 'getShifts']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Leave Request Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager')
+    ->prefix('leave-requests')
+    ->group(function () {
+        Route::get('/', [LeaveRequestController::class, 'index']);
+        Route::get('/stats', [LeaveRequestController::class, 'getStats']);
+        Route::get('/today', [LeaveRequestController::class, 'getTodayLeave']);
+        Route::get('/pending', [LeaveRequestController::class, 'getPending']);
+        Route::get('/approved', [LeaveRequestController::class, 'getApproved']);
+        Route::post('/', [LeaveRequestController::class, 'store']);
+        Route::get('/{leaveRequest}', [LeaveRequestController::class, 'show']);
+        Route::patch('/{leaveRequest}', [LeaveRequestController::class, 'update']);
+        Route::delete('/{leaveRequest}', [LeaveRequestController::class, 'destroy']);
+        Route::post('/{leaveRequest}/approve', [LeaveRequestController::class, 'approve']);
+        Route::post('/{leaveRequest}/reject', [LeaveRequestController::class, 'reject']);
+        Route::get('/employee/{employeeId}', [LeaveRequestController::class, 'getByEmployee']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | QR Attendance Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('qr-attendance')
+    ->group(function () {
+        // Generate QR token (admin/manager only)
+        Route::middleware('role:Admin,Owner,Supervisor,Manager')
+        ->post('/generate-token', [QrAttendanceController::class, 'generateToken']);
+        
+        // Validate QR token (authenticated)
+        Route::middleware('auth:sanctum')
+        ->post('/validate-token', [QrAttendanceController::class, 'validateToken']);
+        
+        // Check-in/Check-out via QR (authenticated)
+        Route::middleware('auth:sanctum')
+        ->post('/check-in', [QrAttendanceController::class, 'checkIn']);
+        Route::middleware('auth:sanctum')
+        ->post('/check-out', [QrAttendanceController::class, 'checkOut']);
+        
+        // Get current status (authenticated)
+        Route::middleware('auth:sanctum')
+        ->get('/current-status', [QrAttendanceController::class, 'getCurrentStatus']);
     });
 
     /*
