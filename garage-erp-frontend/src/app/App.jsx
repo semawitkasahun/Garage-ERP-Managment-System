@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from './router';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { ToastProvider } from '@/components/ui/Toast';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,9 +37,11 @@ function AuthGate({ children }) {
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthGate>
-        <RouterProvider router={router} />
-      </AuthGate>
+      <ToastProvider>
+        <AuthGate>
+          <RouterProvider router={router} />
+        </AuthGate>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

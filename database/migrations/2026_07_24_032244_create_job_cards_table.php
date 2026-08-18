@@ -12,9 +12,7 @@ return new class extends Migration
             $table->id('job_card_id');
             
             $table->foreignId('work_order_id')
-                ->constrained('work_orders', 'work_order_id')
-                ->cascadeOnUpdate()
-                ->cascadeOnDelete();
+                ->nullable();
             
             $table->string('description', 255)->nullable();
             $table->string('status', 20)->nullable();

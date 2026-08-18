@@ -15,10 +15,7 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
             $table->foreignId('section_id')
-                ->nullable()
-                ->constrained('sections', 'section_id')
-                ->cascadeOnUpdate()
-                ->nullOnDelete();
+                ->nullable();
             
             $table->string('first_name', 50)->nullable(false);
             $table->string('last_name', 50)->nullable(false);

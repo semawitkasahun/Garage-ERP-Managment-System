@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { X, Phone, Mail, MapPin, Calendar, Building, User, Shield, CheckCircle, XCircle, FileText, ClipboardCheck, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X, Phone, Mail, MapPin, Calendar, Building, User, Shield, CheckCircle, XCircle, FileText, ClipboardCheck, Star, ChevronRight } from 'lucide-react';
 import { useEmployeeDetail } from '@/features/employees/hooks/useEmployees';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export function EmployeeDetailsModal({ employeeId, open, onClose }) {
+  const navigate = useNavigate();
   const { data: employee, isLoading, error } = useEmployeeDetail(employeeId);
 
   if (!open) return null;
@@ -73,6 +75,13 @@ export function EmployeeDetailsModal({ employeeId, open, onClose }) {
                   <span className="text-sm text-muted-foreground">ID: {employee.employee_id}</span>
                 </div>
               </div>
+              <button
+                onClick={() => { onClose(); navigate(`/payroll/employee/${employee.employee_id}`); }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-white rounded-md transition-colors hover:opacity-90 shrink-0"
+                style={{ background: 'hsl(84 25% 30%)' }}
+              >
+                Employee Payroll → {employee.first_name}
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

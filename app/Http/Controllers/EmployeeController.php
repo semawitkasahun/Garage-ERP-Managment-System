@@ -10,7 +10,7 @@ class EmployeeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Employee::query()->with(['branch', 'user']);
+        $query = Employee::query()->with(['branch', 'user', 'currentSalaryStructure.salaryStructure']);
 
         // Search functionality
         if ($request->filled('search')) {
@@ -160,5 +160,71 @@ class EmployeeController extends Controller
     {
         $employee->delete();
         return response()->noContent();
+    }
+
+    /**
+     * Get all active employees with their payroll profile/salary structure
+     * This is used by the Employee Payroll section to show all active employees
+     * regardless of whether they have payroll data yet.
+     */
+    public function getPayrollProfiles(Request $request)
+    {
+        $query = Employee::query()
+            ->with(['branch', 'department', 'currentSalaryStructure.salaryStructure'])
+            ->where('employment_status', 'active');
+
+        // Branch filter
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', $request->input('branch_id'));
+        }
+
+        // Department filter
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->input('department_id'));
+        }
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('job_title', 'like', "%{$search}%");
+            });
+        }
+
+        $employees = $query->latest()->paginate($request->integer('per_page', 20));
+
+        // Transform to match the required API response structure
+        $employees->getCollection()->transform(function ($employee) {
+            $salaryStructure = $employee->currentSalaryStructure;
+            
+            return [
+                'id' => $employee->employee_id,
+                'name' => $employee->first_name . ' ' . $employee->last_name,
+                'first_name' => $employee->first_name,
+                'last_name' => $employee->last_name,
+                'job_title' => $employee->job_title,
+                'status' => $employee->employment_status,
+                'branch_id' => $employee->branch_id,
+                'branch' => $employee->branch,
+                'department_id' => $employee->department_id,
+                'department' => $employee->department,
+                'hire_date' => $employee->hire_date,
+                'phone' => $employee->phone,
+                'email' => $employee->email,
+                'payroll_profile' => $salaryStructure ? [
+                    'id' => $salaryStructure->employee_salary_structure_id,
+                    'basic_salary' => $salaryStructure->basic_salary_override ?? ($salaryStructure->salaryStructure->basic_salary ?? null),
+                    'salary_type' => 'monthly', // Default to monthly as per existing structure
+                    'overtime_rate' => $salaryStructure->overtime_rate_override ?? ($salaryStructure->salaryStructure->overtime_rate ?? null),
+                    'effective_date' => $salaryStructure->effective_date,
+                    'is_active' => $salaryStructure->is_active,
+                    'salary_structure_name' => $salaryStructure->salaryStructure->name ?? null,
+                ] : null,
+            ];
+        });
+
+        return $employees;
     }
 }

@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('shifts', function (Blueprint $table) {
-            $table->foreignId('department_id')->nullable()->constrained('departments', 'department_id')->nullOnDelete();
+            if (!Schema::hasColumn('shifts', 'department_id')) {
+                $table->foreignId('department_id')->nullable();
+            }
         });
     }
 
@@ -22,8 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('shifts', function (Blueprint $table) {
-            $table->dropForeign(['department_id']);
-            $table->dropColumn('department_id');
+            if (Schema::hasColumn('shifts', 'department_id')) {
+                $table->dropColumn('department_id');
+            }
         });
     }
 };

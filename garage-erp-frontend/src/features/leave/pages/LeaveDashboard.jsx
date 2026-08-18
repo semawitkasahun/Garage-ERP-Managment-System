@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Users, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Plus, Search, Filter, ChevronDown, FileText, Eye, Trash2, CalendarDays, X } from 'lucide-react';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { getNavSections } from '@/layouts/navSections';
@@ -27,8 +28,14 @@ const STATUS_CONFIG = {
 
 export function LeaveDashboard() {
   const { user } = useAuthStore();
+  const location = useLocation();
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const searchParams = new URLSearchParams(location.search);
+  const initialSearch = location.state?.search || searchParams.get('search') || '';
+
   const [filters, setFilters] = useState({
+    search: initialSearch,
     status: '',
     leave_type: '',
     from_date: '',
@@ -57,7 +64,7 @@ export function LeaveDashboard() {
   };
 
   const handleClearFilters = () => {
-    setFilters({ status: '', leave_type: '', from_date: '', to_date: '' });
+    setFilters({ search: '', status: '', leave_type: '', from_date: '', to_date: '' });
   };
 
   const hasActiveFilters = Object.values(filters).some(v => v !== '' && v !== null && v !== undefined);

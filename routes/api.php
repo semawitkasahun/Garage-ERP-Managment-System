@@ -28,6 +28,15 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\QrAttendanceController;
 use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\PayrollPeriodController;
+use App\Http\Controllers\SalaryStructureController;
+use App\Http\Controllers\AllowanceController;
+use App\Http\Controllers\DeductionController;
+use App\Http\Controllers\PayrollRunController;
+use App\Http\Controllers\PayrollItemController;
+use App\Http\Controllers\EmployeeSalaryStructureController;
+use App\Http\Controllers\PayrollReportController;
+use App\Http\Controllers\EmployeePayrollWorkflowController;
 
 /*
 |--------------------------------------------------------------------------
@@ -139,6 +148,7 @@ Route::middleware('role:Technician,Service Advisor,Manager,Supervisor,Admin,Owne
         Route::get('/', [EmployeeController::class, 'index']);
         Route::post('/', [EmployeeController::class, 'store']);
         Route::get('/stats', [EmployeeController::class, 'stats']);
+        Route::get('/payroll-profiles', [EmployeeController::class, 'getPayrollProfiles']);
         Route::get('/{employee}', [EmployeeController::class, 'show']);
         Route::patch('/{employee}', [EmployeeController::class, 'update']);
         Route::delete('/{employee}', [EmployeeController::class, 'destroy']);
@@ -222,6 +232,197 @@ Route::middleware('role:Technician,Service Advisor,Manager,Supervisor,Admin,Owne
         Route::post('/{leaveRequest}/approve', [LeaveRequestController::class, 'approve']);
         Route::post('/{leaveRequest}/reject', [LeaveRequestController::class, 'reject']);
         Route::get('/employee/{employeeId}', [LeaveRequestController::class, 'getByEmployee']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payroll Run Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager')
+    ->prefix('payroll-runs')
+    ->group(function () {
+        Route::get('/', [PayrollRunController::class, 'index']);
+        Route::get('/summary', [PayrollRunController::class, 'getSummary']);
+        Route::get('/pending', [PayrollRunController::class, 'getPending']);
+        Route::get('/branch/{branchId}', [PayrollRunController::class, 'getByBranch']);
+        Route::get('/period/{payrollPeriodId}', [PayrollRunController::class, 'getByPayrollPeriod']);
+        Route::post('/', [PayrollRunController::class, 'store']);
+        Route::get('/{payrollRun}', [PayrollRunController::class, 'show']);
+        Route::patch('/{payrollRun}', [PayrollRunController::class, 'update']);
+        Route::delete('/{payrollRun}', [PayrollRunController::class, 'destroy']);
+        Route::post('/{payrollRun}/process', [PayrollRunController::class, 'process']);
+        Route::post('/{payrollRun}/calculate', [PayrollRunController::class, 'calculate']);
+        Route::post('/{payrollRun}/approve', [PayrollRunController::class, 'approve']);
+        Route::post('/{payrollRun}/mark-paid', [PayrollRunController::class, 'markAsPaid']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payroll Item Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager')
+    ->prefix('payroll-items')
+    ->group(function () {
+        Route::get('/', [PayrollItemController::class, 'index']);
+        Route::get('/run/{payrollRunId}', [PayrollItemController::class, 'getByPayrollRun']);
+        Route::get('/employee/{employeeId}', [PayrollItemController::class, 'getByEmployee']);
+        Route::get('/summary/{payrollRunId}', [PayrollItemController::class, 'getSummary']);
+        Route::post('/', [PayrollItemController::class, 'store']);
+        Route::post('/bulk', [PayrollItemController::class, 'bulkStore']);
+        Route::get('/{payrollItem}', [PayrollItemController::class, 'show']);
+        Route::patch('/{payrollItem}', [PayrollItemController::class, 'update']);
+        Route::delete('/{payrollItem}', [PayrollItemController::class, 'destroy']);
+        Route::post('/{payrollItem}/allowances', [PayrollItemController::class, 'addAllowance']);
+        Route::post('/{payrollItem}/deductions', [PayrollItemController::class, 'addDeduction']);
+        Route::delete('/{payrollItem}/allowances/{allowanceId}', [PayrollItemController::class, 'removeAllowance']);
+        Route::delete('/{payrollItem}/deductions/{deductionId}', [PayrollItemController::class, 'removeDeduction']);
+        Route::post('/{payrollItem}/generate-payslip', [PayrollItemController::class, 'generatePayslip']);
+        Route::get('/{payrollItem}/download-payslip', [PayrollItemController::class, 'downloadPayslip']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Employee Salary Structure Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager')
+    ->prefix('employee-salary-structures')
+    ->group(function () {
+        Route::get('/', [EmployeeSalaryStructureController::class, 'index']);
+        Route::get('/employee/{employeeId}/current', [EmployeeSalaryStructureController::class, 'getCurrent']);
+        Route::get('/employee/{employeeId}/history', [EmployeeSalaryStructureController::class, 'getHistory']);
+        Route::post('/', [EmployeeSalaryStructureController::class, 'store']);
+        Route::get('/{employeeSalaryStructure}', [EmployeeSalaryStructureController::class, 'show']);
+        Route::patch('/{employeeSalaryStructure}', [EmployeeSalaryStructureController::class, 'update']);
+        Route::delete('/{employeeSalaryStructure}', [EmployeeSalaryStructureController::class, 'destroy']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payroll Period Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager,Finance')
+    ->prefix('payroll-periods')
+    ->group(function () {
+        Route::get('/', [PayrollPeriodController::class, 'index']);
+        Route::get('/summary', [PayrollPeriodController::class, 'getSummary']);
+        Route::get('/dashboard-metrics', [PayrollPeriodController::class, 'getDashboardMetrics']);
+        Route::get('/month-stats', [PayrollPeriodController::class, 'getMonthStats']);
+        Route::get('/branch/{branchId}', [PayrollPeriodController::class, 'getByBranch']);
+        Route::post('/', [PayrollPeriodController::class, 'store']);
+        Route::get('/{payrollPeriod}', [PayrollPeriodController::class, 'show']);
+        Route::patch('/{payrollPeriod}', [PayrollPeriodController::class, 'update']);
+        Route::delete('/{payrollPeriod}', [PayrollPeriodController::class, 'destroy']);
+        Route::post('/{payrollPeriod}/process', [PayrollPeriodController::class, 'process']);
+        Route::post('/{payrollPeriod}/submit-approval', [PayrollPeriodController::class, 'submitForApproval']);
+        Route::post('/{payrollPeriod}/approve', [PayrollPeriodController::class, 'approve']);
+        Route::post('/{payrollPeriod}/mark-paid', [PayrollPeriodController::class, 'markAsPaid']);
+        Route::post('/{payrollPeriod}/cancel', [PayrollPeriodController::class, 'cancel']);
+        Route::post('/{payrollPeriod}/generate-payslips', [PayrollPeriodController::class, 'generatePayslips']);
+        // Workflow Steps
+        Route::post('/{payrollPeriod}/import-attendance', [PayrollPeriodController::class, 'importAttendance']);
+        Route::post('/{payrollPeriod}/calculate-salaries', [PayrollPeriodController::class, 'calculateSalaries']);
+        Route::post('/{payrollPeriod}/calculate-deductions', [PayrollPeriodController::class, 'calculateDeductions']);
+        Route::post('/{payrollPeriod}/review', [PayrollPeriodController::class, 'reviewPayroll']);
+        Route::post('/{payrollPeriod}/process-payment', [PayrollPeriodController::class, 'processPayment']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Employee Payroll Workflow Routes (Per-Employee)
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager,Finance')
+    ->prefix('employee-payroll')
+    ->group(function () {
+        Route::get('/list', [EmployeePayrollWorkflowController::class, 'list']);
+        Route::get('/{employeeId}/detail', [EmployeePayrollWorkflowController::class, 'detail']);
+        Route::get('/{employeeId}/attendance', [EmployeePayrollWorkflowController::class, 'attendance']);
+        Route::post('/{employeeId}/calculate', [EmployeePayrollWorkflowController::class, 'calculate']);
+        Route::post('/{employeeId}/calculate-deductions', [EmployeePayrollWorkflowController::class, 'calculateDeductions']);
+        Route::post('/{employeeId}/confirm-review', [EmployeePayrollWorkflowController::class, 'confirmReview']);
+        Route::post('/{employeeId}/approve', [EmployeePayrollWorkflowController::class, 'approve']);
+        Route::post('/{employeeId}/pay', [EmployeePayrollWorkflowController::class, 'pay']);
+        Route::get('/{employeeId}/payslip', [EmployeePayrollWorkflowController::class, 'payslip']);
+        Route::get('/{employeeId}/receipt', [EmployeePayrollWorkflowController::class, 'receipt']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Salary Structure Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager')
+    ->prefix('salary-structures')
+    ->group(function () {
+        Route::get('/', [SalaryStructureController::class, 'index']);
+        Route::get('/active', [SalaryStructureController::class, 'getActive']);
+        Route::get('/department/{departmentId}', [SalaryStructureController::class, 'getByDepartment']);
+        Route::post('/', [SalaryStructureController::class, 'store']);
+        Route::get('/{salaryStructure}', [SalaryStructureController::class, 'show']);
+        Route::patch('/{salaryStructure}', [SalaryStructureController::class, 'update']);
+        Route::delete('/{salaryStructure}', [SalaryStructureController::class, 'destroy']);
+        Route::post('/{salaryStructure}/assign-employee', [SalaryStructureController::class, 'assignToEmployee']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Allowance Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager')
+    ->prefix('allowances')
+    ->group(function () {
+        Route::get('/', [AllowanceController::class, 'index']);
+        Route::get('/active', [AllowanceController::class, 'getActive']);
+        Route::get('/taxable', [AllowanceController::class, 'getTaxable']);
+        Route::get('/non-taxable', [AllowanceController::class, 'getNonTaxable']);
+        Route::post('/', [AllowanceController::class, 'store']);
+        Route::get('/{allowance}', [AllowanceController::class, 'show']);
+        Route::patch('/{allowance}', [AllowanceController::class, 'update']);
+        Route::delete('/{allowance}', [AllowanceController::class, 'destroy']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Deduction Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager')
+    ->prefix('deductions')
+    ->group(function () {
+        Route::get('/', [DeductionController::class, 'index']);
+        Route::get('/active', [DeductionController::class, 'getActive']);
+        Route::get('/type/{type}', [DeductionController::class, 'getByType']);
+        Route::get('/tax', [DeductionController::class, 'getTax']);
+        Route::get('/pension', [DeductionController::class, 'getPension']);
+        Route::get('/loans', [DeductionController::class, 'getLoans']);
+        Route::get('/advances', [DeductionController::class, 'getAdvances']);
+        Route::post('/', [DeductionController::class, 'store']);
+        Route::get('/{deduction}', [DeductionController::class, 'show']);
+        Route::patch('/{deduction}', [DeductionController::class, 'update']);
+        Route::delete('/{deduction}', [DeductionController::class, 'destroy']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payroll Reports Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Admin,Owner,Supervisor,Manager,HR Manager,Finance')
+    ->prefix('payroll-reports')
+    ->group(function () {
+        Route::get('/summary', [PayrollReportController::class, 'getSummaryReport']);
+        Route::get('/employee-cost', [PayrollReportController::class, 'getEmployeeCostAnalysis']);
+        Route::get('/period-comparison', [PayrollReportController::class, 'getPeriodComparison']);
+        Route::get('/department', [PayrollReportController::class, 'getDepartmentReport']);
+        Route::get('/deductions', [PayrollReportController::class, 'getDeductionAnalysis']);
+        Route::get('/payment-history/{id}', [PayrollReportController::class, 'getPaymentRecord']);
+        Route::get('/payment-history', [PayrollReportController::class, 'getPaymentHistory']);
+        Route::get('/comprehensive', [PayrollReportController::class, 'getComprehensiveReport']);
     });
 
     /*

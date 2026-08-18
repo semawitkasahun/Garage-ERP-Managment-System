@@ -22,6 +22,11 @@ import { ShiftsPage } from '@/features/attendance/pages/ShiftsPage';
 import { AttendanceTerminal } from '@/features/attendance/pages/AttendanceTerminal';
 import { AttendanceScan } from '@/features/attendance/pages/AttendanceScan';
 import { LeaveDashboard } from '@/features/leave/pages/LeaveDashboard';
+import { PayrollPage } from '@/features/payroll/pages/PayrollPage';
+import { PayrollHistoryPage } from '@/features/payroll/pages/PayrollHistoryPage';
+import { PaymentDetailsPage } from '@/features/payroll/pages/PaymentDetailsPage';
+import { EmployeePayrollDetailPage } from '@/features/payroll/pages/EmployeePayrollDetailPage';
+import { PayrollReportsPage } from '@/features/payroll/pages/PayrollReportsPage';
 
 
 export const router = createBrowserRouter([
@@ -42,13 +47,25 @@ export const router = createBrowserRouter([
     ]
   },
   {
-    element: <ProtectedRoute allowedRoles={['owner', 'admin', 'supervisor', 'manager']} />,
+    element: <ProtectedRoute allowedRoles={['owner', 'admin', 'supervisor', 'manager', 'hr', 'finance', 'service_advisor']} />,
     children: [
       { path: '/employees', element: <EmployeesPage /> },
       { path: '/attendance', element: <AttendancePage /> },
       { path: '/shifts', element: <ShiftsPage /> },
       { path: '/attendance/terminal', element: <AttendanceTerminal /> },
       { path: '/leave', element: <LeaveDashboard /> },
+      { path: '/payroll', element: <PayrollPage /> },
+      { path: '/payroll/history', element: <PayrollHistoryPage /> },
+      { path: '/payroll-history', element: <PayrollHistoryPage /> },
+      { path: '/payroll-history/pending/:itemId', element: <PaymentDetailsPage /> },
+      { path: '/payroll-history/:paymentId', element: <PaymentDetailsPage /> },
+      { path: '/payrollhistory', element: <PayrollHistoryPage /> },
+      { path: '/payroll/payments', element: <PayrollHistoryPage /> },
+      { path: '/payroll/periods', element: <PayrollPage defaultSection="periods" /> },
+      { path: '/payroll/employees', element: <PayrollPage defaultSection="employees" /> },
+      { path: '/payroll/employee/:employeeId', element: <EmployeePayrollDetailPage /> },
+      { path: '/payroll/reports', element: <PayrollReportsPage /> },
+      { path: '/payroll-reports', element: <PayrollReportsPage /> },
     ]
   },
   // Public attendance scan route (with auth check inside component)

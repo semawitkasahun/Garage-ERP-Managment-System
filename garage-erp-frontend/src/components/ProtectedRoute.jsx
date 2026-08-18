@@ -18,8 +18,12 @@ export function ProtectedRoute({ allowedRoles }) {
 
   if (status === 'loading' || status === 'idle') return null;
   if (status !== 'authenticated') return <Navigate to="/login" replace />;
-  if (allowedRoles && !allowedRoles.includes(role)) {
-    return <Navigate to={DASHBOARD_BY_ROLE[role] ?? '/login'} replace />;
+  if (allowedRoles && allowedRoles.length > 0) {
+    const userRoleLower = (role || '').toLowerCase();
+    const isAllowed = allowedRoles.some(r => r.toLowerCase() === userRoleLower);
+    if (!isAllowed) {
+      return <Navigate to={DASHBOARD_BY_ROLE[userRoleLower] ?? '/login'} replace />;
+    }
   }
   return <Outlet />;
 }

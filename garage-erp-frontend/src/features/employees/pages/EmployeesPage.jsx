@@ -1,16 +1,19 @@
 import { useState } from 'react';
-import { Users, UserCheck, CalendarOff, UserPlus2, UserX, Plus, ArrowUpDown, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, UserCheck, CalendarOff, UserPlus2, UserX, Plus, ArrowUpDown, AlertCircle, Building } from 'lucide-react';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { getNavSections } from '@/layouts/navSections';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useEmployees, useEmployeeStats, useDeleteEmployee, useUpdateEmployee } from '@/features/employees/hooks/useEmployees';
 import { AddEmployeeModal } from '@/features/employees/components/AddEmployeeModal';
+import { EditEmployeeModal } from '@/features/employees/components/EditEmployeeModal';
 import { FilterBar } from '@/components/employees/FilterBar';
 import { ActionMenu } from '@/components/employees/ActionMenu';
 import { EmployeeDetailsModal } from '@/components/employees/EmployeeDetailsModal';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const STATUS_META = {
   active: { bg: 'hsl(84 20% 89%)', text: 'hsl(84 25% 25%)' },
@@ -28,6 +31,8 @@ const SORTABLE_FIELDS = [
 
 export function EmployeesPage() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const toast = useToast();
   const [filters, setFilters] = useState({
     search: '',
     department: '',
@@ -38,9 +43,17 @@ export function EmployeesPage() {
   });
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const [sort, setSort] = useState({ field: 'hire_date', direction: 'desc' });
+
+  // Delete & Status Toggle Confirm Dialog states
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState(null);
+  const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
+  const [employeeToToggle, setEmployeeToToggle] = useState(null);
 
   const { data: stats, isLoading: statsLoading } = useEmployeeStats(user?.branch_id);
   const { data: employeesData, isLoading, error } = useEmployees({ 
@@ -87,25 +100,43 @@ export function EmployeesPage() {
     setPage(1);
   };
 
-  async function handleDelete(emp) {
-    if (!confirm(`Remove ${emp.first_name} ${emp.last_name}?`)) return;
+  const handleDeleteClick = (emp) => {
+    setEmployeeToDelete(emp);
+    setDeleteConfirmOpen(true);
+  };
+
+  async function handleDeleteConfirm() {
+    if (!employeeToDelete) return;
     try {
-      await deleteEmployee.mutateAsync(emp.employee_id);
+      await deleteEmployee.mutateAsync(employeeToDelete.employee_id);
+      toast.success(`${employeeToDelete.first_name} ${employeeToDelete.last_name} deleted successfully`);
     } catch (err) {
-      alert(err.response?.data?.message ?? 'Could not delete employee.');
+      toast.error(err.response?.data?.message ?? 'Could not delete employee.');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setEmployeeToDelete(null);
     }
   }
 
-  async function handleToggleStatus(emp) {
-    const newStatus = emp.employment_status === 'active' ? 'inactive' : 'active';
-    if (!confirm(`${newStatus === 'active' ? 'Activate' : 'Deactivate'} ${emp.first_name} ${emp.last_name}?`)) return;
+  const handleToggleStatusClick = (emp) => {
+    setEmployeeToToggle(emp);
+    setStatusConfirmOpen(true);
+  };
+
+  async function handleToggleStatusConfirm() {
+    if (!employeeToToggle) return;
+    const newStatus = employeeToToggle.employment_status === 'active' ? 'inactive' : 'active';
     try {
       await updateEmployee.mutateAsync({ 
-        employeeId: emp.employee_id, 
+        employeeId: employeeToToggle.employee_id, 
         payload: { employment_status: newStatus } 
       });
+      toast.success(`Employee status set to ${newStatus}`);
     } catch (err) {
-      alert(err.response?.data?.message ?? 'Could not update employee status.');
+      toast.error(err.response?.data?.message ?? 'Could not update employee status.');
+    } finally {
+      setStatusConfirmOpen(false);
+      setEmployeeToToggle(null);
     }
   }
 
@@ -115,28 +146,35 @@ export function EmployeesPage() {
   };
 
   const handleEdit = (emp) => {
-    // TODO: Implement edit modal
-    alert('Edit functionality coming soon');
+    setEditingEmployee(emp);
+    setEditModalOpen(true);
   };
 
   const handleManageAccount = (emp) => {
-    // TODO: Implement account management
-    alert('Account management coming soon');
+    // Account access is managed in Users & Roles page
+    navigate('/admin/dashboard');
+    toast.info('Account login access is managed from the Users & Roles dashboard.');
   };
 
   const handleViewAttendance = (emp) => {
-    // TODO: Navigate to attendance view
-    alert('Attendance view coming soon');
+    navigate('/attendance', { state: { search: `${emp.first_name} ${emp.last_name}` } });
+    toast.info(`Filtered attendance records for ${emp.first_name} ${emp.last_name}.`);
   };
 
   const handleViewLeave = (emp) => {
-    // TODO: Navigate to leave view
-    alert('Leave view coming soon');
+    navigate('/leave', { state: { search: `${emp.first_name} ${emp.last_name}` } });
+    toast.info(`Filtered leave requests for ${emp.first_name} ${emp.last_name}.`);
+  };
+
+  const handleViewPayroll = (emp) => {
+    navigate(`/payroll/employee/${emp.employee_id}`);
   };
 
   const handleViewPerformance = (emp) => {
-    // TODO: Navigate to performance view
-    alert('Performance view coming soon');
+    // Performance details are summarized inside the Details modal
+    setSelectedEmployeeId(emp.employee_id);
+    setDetailsModalOpen(true);
+    toast.info(`Performance overview for ${emp.first_name} is displayed in the details window.`);
   };
 
   const navSections = getNavSections(user?.role);
@@ -249,6 +287,7 @@ export function EmployeesPage() {
                 </th>
                 <th className="px-4 py-3 font-mono text-[10px] tracking-[0.1em] uppercase text-muted-foreground font-medium">Department</th>
                 <th className="px-4 py-3 font-mono text-[10px] tracking-[0.1em] uppercase text-muted-foreground font-medium">Phone</th>
+                <th className="px-4 py-3 font-mono text-[10px] tracking-[0.1em] uppercase text-muted-foreground font-medium">Basic Salary</th>
                 <th className="px-4 py-3 font-mono text-[10px] tracking-[0.1em] uppercase text-muted-foreground font-medium">Email</th>
                 <th 
                   className="px-4 py-3 font-mono text-[10px] tracking-[0.1em] uppercase text-muted-foreground font-medium cursor-pointer hover:text-foreground transition-colors"
@@ -332,6 +371,13 @@ export function EmployeesPage() {
                       <td className="px-4 py-3 text-muted-foreground">{emp.job_title || '—'}</td>
                       <td className="px-4 py-3 text-muted-foreground">{emp.branch?.name || '—'}</td>
                       <td className="px-4 py-3 text-muted-foreground">{emp.phone || '—'}</td>
+                      <td className="px-4 py-3 font-medium">
+                        {emp.current_salary_structure ? (
+                          `ETB ${Number(emp.current_salary_structure.basic_salary_override || emp.current_salary_structure.salary_structure?.basic_salary || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                        ) : (
+                          <span className="text-amber-600 text-xs font-normal">Not configured</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground">{emp.email || '—'}</td>
                       <td className="px-4 py-3 text-muted-foreground">{emp.hire_date || '—'}</td>
                       <td className="px-4 py-3">
@@ -353,12 +399,13 @@ export function EmployeesPage() {
                           employee={emp}
                           onViewDetails={handleViewDetails}
                           onEdit={handleEdit}
-                          onDelete={handleDelete}
+                          onDelete={handleDeleteClick}
                           onManageAccount={handleManageAccount}
                           onViewAttendance={handleViewAttendance}
                           onViewLeave={handleViewLeave}
+                          onViewPayroll={handleViewPayroll}
                           onViewPerformance={handleViewPerformance}
-                          onToggleStatus={handleToggleStatus}
+                          onToggleStatus={handleToggleStatusClick}
                         />
                       </td>
                     </tr>
@@ -396,6 +443,16 @@ export function EmployeesPage() {
       {/* Add Employee Modal */}
       <AddEmployeeModal open={modalOpen} onClose={() => setModalOpen(false)} />
 
+      {/* Edit Employee Modal */}
+      <EditEmployeeModal 
+        open={editModalOpen} 
+        onClose={() => {
+          setEditModalOpen(false);
+          setEditingEmployee(null);
+        }} 
+        employee={editingEmployee} 
+      />
+
       {/* Employee Details Modal */}
       <EmployeeDetailsModal 
         employeeId={selectedEmployeeId} 
@@ -404,6 +461,29 @@ export function EmployeesPage() {
           setDetailsModalOpen(false);
           setSelectedEmployeeId(null);
         }} 
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Employee"
+        message={`Are you sure you want to remove ${employeeToDelete?.first_name} ${employeeToDelete?.last_name}? This action is permanent.`}
+        confirmText="Delete"
+        confirmStyle="danger"
+        loading={deleteEmployee.isPending}
+      />
+
+      {/* Status Change Confirmation */}
+      <ConfirmDialog
+        open={statusConfirmOpen}
+        onClose={() => setStatusConfirmOpen(false)}
+        onConfirm={handleToggleStatusConfirm}
+        title="Change Employment Status"
+        message={`Are you sure you want to toggle the status of ${employeeToToggle?.first_name} ${employeeToToggle?.last_name}?`}
+        confirmText="Toggle"
+        loading={updateEmployee.isPending}
       />
     </DashboardLayout>
   );

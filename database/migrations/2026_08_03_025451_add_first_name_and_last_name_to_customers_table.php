@@ -8,8 +8,12 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('customers', function (Blueprint $table) {
-            $table->string('first_name', 100)->after('customer_id');
-            $table->string('last_name', 100)->after('first_name');
+            if (!Schema::hasColumn('customers', 'first_name')) {
+                $table->string('first_name', 100)->after('customer_id');
+            }
+            if (!Schema::hasColumn('customers', 'last_name')) {
+                $table->string('last_name', 100)->after('first_name');
+            }
         });
     }
 

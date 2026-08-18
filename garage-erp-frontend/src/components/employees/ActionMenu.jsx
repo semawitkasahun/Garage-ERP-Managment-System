@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { MoreHorizontal, Eye, Pencil, Trash2, Calendar, ClipboardCheck, FileText, UserCheck, UserX } from 'lucide-react';
 
-export function ActionMenu({ employee, onViewDetails, onEdit, onDelete, onManageAccount, onViewAttendance, onViewLeave, onViewPerformance, onToggleStatus }) {
+export function ActionMenu({ employee, onViewDetails, onEdit, onDelete, onManageAccount, onViewAttendance, onViewLeave, onViewPayroll, onViewPerformance, onToggleStatus }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -28,6 +28,7 @@ export function ActionMenu({ employee, onViewDetails, onEdit, onDelete, onManage
       items: [
         { label: 'View Attendance', icon: Calendar, onClick: () => { onViewAttendance(employee); setOpen(false); } },
         { label: 'View Leave', icon: ClipboardCheck, onClick: () => { onViewLeave(employee); setOpen(false); } },
+        { label: `Employee Payroll → ${employee.first_name || ''}`, icon: FileText, onClick: () => { onViewPayroll(employee); setOpen(false); } },
         { label: 'View Performance', icon: FileText, onClick: () => { onViewPerformance(employee); setOpen(false); } },
       ],
     },

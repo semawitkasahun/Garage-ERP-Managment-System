@@ -206,6 +206,7 @@ class AuthController extends Controller
         if (in_array('Supervisor', $roles)) return 'supervisor';
         if (in_array('Manager', $roles)) return 'manager';
         if (in_array('Finance', $roles)) return 'finance';
+        if (in_array('HR Manager', $roles)) return 'hr';
         if (in_array('HR', $roles)) return 'hr';
         if (in_array('Technician', $roles)) return 'technician';
         if (in_array('Service Advisor', $roles)) return 'service_advisor';

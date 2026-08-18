@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Users, UserCheck, UserX, Clock, CalendarOff, ArrowRight, TrendingUp, AlertCircle, Search, Filter, X, ChevronDown, Coffee, Timer, CalendarClock, CheckCircle, QrCode } from 'lucide-react';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { getNavSections } from '@/layouts/navSections';
@@ -17,9 +17,14 @@ const STATUS_META = {
 
 export function AttendancePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
+
+  const searchParams = new URLSearchParams(location.search);
+  const initialSearch = location.state?.search || searchParams.get('search') || '';
+
   const [filters, setFilters] = useState({
-    search: '',
+    search: initialSearch,
     status: '',
     from_date: '',
     to_date: '',

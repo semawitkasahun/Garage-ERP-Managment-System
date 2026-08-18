@@ -9,13 +9,13 @@ import carImage from '@/assets/car.png';
 
 // Update these to match real seeded users in your DB for one-click testing
 const QUICK_LOGINS = {
-  owner:      { email: 'owner@garage.com',      password: 'Owner@123' },
-  admin:      { email: 'admin@garage.com',      password: 'Admin@123' },
-  supervisor: { email: 'supervisor@garage.com', password: 'Supervisor@123' },
-  finance:    { email: 'finance@garage.com',    password: 'Finance@123' },
-  hrmanager:  { email: 'hrmanager@garage.com',  password: 'HRManager@123' },
-  technician: { email: 'technician@garage.com', password: 'Technician@123' },
-  customer:   { email: 'customer@garage.com',   password: 'Customer@123' },
+  owner:      { email: 'owner@garage.com',      password: 'password123' },
+  admin:      { email: 'admin@garage.com',      password: 'password123' },
+  supervisor: { email: 'supervisor@garage.com', password: 'password123' },
+  finance:    { email: 'finance@garage.com',    password: 'password123' },
+  hrmanager:  { email: 'hrmanager@garage.com',  password: 'password123' },
+  technician: { email: 'technician@garage.com', password: 'password123' },
+  customer:   { email: 'customer@garage.com',   password: 'password123' },
 };
 
 export function LoginPage() {

@@ -28,67 +28,11 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Add section_id to employees table
-        Schema::table('employees', function (Blueprint $table) {
-            if (!Schema::hasColumn('employees', 'section_id')) {
-                $table->foreignId('section_id')
-                    ->nullable()
-                    ->after('branch_id')
-                    ->constrained('sections', 'section_id')
-                    ->cascadeOnUpdate()
-                    ->nullOnDelete();
-            }
-        });
-
-        // Add section_id to work_orders table
-        Schema::table('work_orders', function (Blueprint $table) {
-            if (!Schema::hasColumn('work_orders', 'section_id')) {
-                $table->foreignId('section_id')
-                    ->nullable()
-                    ->after('branch_id')
-                    ->constrained('sections', 'section_id')
-                    ->cascadeOnUpdate()
-                    ->nullOnDelete();
-            }
-        });
-
-        // Add section_id to inventory_items table
-        Schema::table('inventory_items', function (Blueprint $table) {
-            if (!Schema::hasColumn('inventory_items', 'section_id')) {
-                $table->foreignId('section_id')
-                    ->nullable()
-                    ->after('category')
-                    ->constrained('sections', 'section_id')
-                    ->cascadeOnUpdate()
-                    ->nullOnDelete();
-            }
-        });
+        // Note: section_id foreign keys are added in separate migrations to avoid dependency issues
     }
 
     public function down(): void
     {
-        // Drop foreign keys first
-        Schema::table('inventory_items', function (Blueprint $table) {
-            if (Schema::hasColumn('inventory_items', 'section_id')) {
-                $table->dropForeign(['section_id']);
-                $table->dropColumn('section_id');
-            }
-        });
-
-        Schema::table('work_orders', function (Blueprint $table) {
-            if (Schema::hasColumn('work_orders', 'section_id')) {
-                $table->dropForeign(['section_id']);
-                $table->dropColumn('section_id');
-            }
-        });
-
-        Schema::table('employees', function (Blueprint $table) {
-            if (Schema::hasColumn('employees', 'section_id')) {
-                $table->dropForeign(['section_id']);
-                $table->dropColumn('section_id');
-            }
-        });
-
         Schema::dropIfExists('sections');
     }
 };

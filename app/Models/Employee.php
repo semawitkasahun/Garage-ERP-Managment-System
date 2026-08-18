@@ -64,6 +64,28 @@ class Employee extends Model
         return $this->hasMany(PayrollItem::class, 'employee_id');
     }
 
+    public function payrollPayments()
+    {
+        return $this->hasMany(PayrollPayment::class, 'employee_id', 'employee_id');
+    }
+
+    public function employeeSalaryStructures()
+    {
+        return $this->hasMany(EmployeeSalaryStructure::class, 'employee_id');
+    }
+
+    public function currentSalaryStructure()
+    {
+        return $this->hasOne(EmployeeSalaryStructure::class, 'employee_id')
+            ->where('is_active', true)
+            ->where('effective_date', '<=', now())
+            ->where(function ($query) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', now());
+            })
+            ->with('salaryStructure');
+    }
+
     public function performanceEvaluations()
     {
         return $this->hasMany(PerformanceEvaluation::class, 'employee_id');

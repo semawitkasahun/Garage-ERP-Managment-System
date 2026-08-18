@@ -46,9 +46,9 @@ const NAV_SECTIONS = [
   label: 'Human Resource Management', items: [
     { label: 'Employees', icon: UserCog, path: '/employees' },
       { label: 'Users & Roles', icon: KeyRound, disabled: true },
-      { label: 'Payroll processing ', icon: KeyRound, disabled: true },
-      { label: 'Attendance & Shifts', icon: KeyRound, path: '/attendance' },
-      { label: 'Leave Management', icon: KeyRound, path: '/leave' },
+      { label: 'Payroll processing', icon: DollarSign, path: '/payroll' },
+      { label: 'Attendance & Shifts', icon: CalendarClock, path: '/attendance' },
+      { label: 'Leave Management', icon: CalendarClock, path: '/leave' },
     ]
   },
   {

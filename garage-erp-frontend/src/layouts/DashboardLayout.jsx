@@ -39,7 +39,9 @@ export function DashboardLayout({ navSections = [], pageTitle, roleLabel, childr
               </p>
               <div className="space-y-0.5">
                 {(section.items ?? []).map((item) => {
-                  const active = location.pathname === item.path;
+                  const active = item.path
+                    ? location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
+                    : false;
                   const Icon = item.icon;
 
                   if (item.disabled) {
