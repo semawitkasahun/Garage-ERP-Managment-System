@@ -24,4 +24,17 @@ class NumberingSequence extends Model
     {
         return $this->belongsTo(Branch::class, 'branch_id', 'branch_id');
     }
+
+    // Helper method to get next number
+    public function getNextNumber()
+    {
+        $prefix = $this->prefix ?? 'WO';
+        $nextNumber = $this->next_number ?? 1;
+        $formattedNumber = $prefix . '-' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+        
+        // Increment for next time
+        $this->increment('next_number');
+        
+        return $formattedNumber;
+    }
 }

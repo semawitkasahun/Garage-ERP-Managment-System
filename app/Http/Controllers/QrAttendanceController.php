@@ -18,16 +18,23 @@ class QrAttendanceController extends Controller
      */
     public function generateToken(Request $request)
     {
-        $request->validate([
-            'branch_id' => 'required|integer|exists:branches,branch_id',
-        ]);
+        // Get branch_id from request or authenticated user
+        $branchId = $request->input('branch_id');
+        if (!$branchId && auth()->check()) {
+            $branchId = auth()->user()->branch_id;
+        }
+
+        // If still no branch_id, use default branch 1
+        if (!$branchId) {
+            $branchId = 1;
+        }
 
         // Clean up old expired tokens
         QrAttendanceToken::cleanupExpired();
 
         // Generate new token
         $token = QrAttendanceToken::createForBranch(
-            $request->branch_id,
+            $branchId,
             $request->ip(),
             $request->userAgent()
         );
@@ -35,7 +42,7 @@ class QrAttendanceController extends Controller
         // Log token generation
         AttendanceAudit::logAction([
             'action' => 'token_generated',
-            'branch_id' => $request->branch_id,
+            'branch_id' => $branchId,
             'qr_token_id' => $token->token_id,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),

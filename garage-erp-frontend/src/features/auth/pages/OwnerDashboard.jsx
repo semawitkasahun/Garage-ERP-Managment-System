@@ -1,49 +1,10 @@
 import {
-  LayoutDashboard, CalendarDays, ClipboardCheck, Users, UserPlus,
-  Car, FileText, Wrench, ShieldCheck, Package, Truck, ShoppingCart,
+  Car, FileText, Wrench, Package, Truck, ShoppingCart,
   Receipt, CreditCard, Landmark, UserCog, KeyRound, Boxes, BarChart3,
   Settings, DollarSign, AlertTriangle,
 } from 'lucide-react';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
-
-const NAV_SECTIONS = [
-  { label: 'Overview', items: [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/owner/dashboard' },
-  ]},
-  { label: 'Front Desk', items: [
-    { label: 'Appointments', icon: CalendarDays, path: '/appointments' },
-    { label: 'Check-In', icon: ClipboardCheck, path: '/checkins/new' },
-    { label: 'Customers', icon: Users, path: '/customers' },
-    { label: 'Leads', icon: UserPlus, disabled: true },
-  ]},
-  { label: 'Service', items: [
-    { label: 'Vehicles', icon: Car, disabled: true },
-    { label: 'Quotations', icon: FileText, disabled: true },
-    { label: 'Work Orders', icon: Wrench, disabled: true },
-    { label: 'Quality Control', icon: ShieldCheck, disabled: true },
-  ]},
-  { label: 'Inventory & Supply', items: [
-    { label: 'Inventory', icon: Package, disabled: true },
-    { label: 'Suppliers', icon: Truck, disabled: true },
-    { label: 'Purchasing', icon: ShoppingCart, disabled: true },
-    { label: 'Sales', icon: Receipt, disabled: true },
-  ]},
-  { label: 'Finance', items: [
-    { label: 'Billing & Payments', icon: CreditCard, disabled: true },
-    { label: 'Financial Management', icon: Landmark, disabled: true },
-  ]},
-  { label: 'Human Resource Management', items: [
-    { label: 'Employees', icon: UserCog, disabled: true },
-    { label: 'Users & Roles', icon: KeyRound, disabled: true },
-    { label: 'Attendance and shift scheduling', icon: KeyRound, disabled: true },
-    { label: 'Leave management', icon: KeyRound, disabled: true },
-  ]},
-  { label: 'Other', items: [
-    { label: 'Assets', icon: Boxes, disabled: true },
-    { label: 'Reports', icon: BarChart3, disabled: true },
-    { label: 'Settings', icon: Settings, disabled: true },
-  ]},
-];
+import { getNavSections } from '@/layouts/navSections';
 
 // TODO: replace with a real query, e.g. useQuery(['owner-dashboard'], fetchOwnerStats)
 const STATS = [
@@ -100,7 +61,7 @@ function WeeklyRevenueChart() {
 
 export function OwnerDashboard() {
   return (
-    <DashboardLayout navSections={NAV_SECTIONS} pageTitle="Dashboard" roleLabel="Owner">
+    <DashboardLayout navSections={getNavSections('owner')} pageTitle="Dashboard" roleLabel="Owner">
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5 mb-6">
         {STATS.map(({ label, value, delta, icon: Icon }) => (

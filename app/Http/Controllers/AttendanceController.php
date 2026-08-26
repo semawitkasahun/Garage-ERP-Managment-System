@@ -6,7 +6,10 @@ use App\Models\Attendance;
 use App\Models\AttendanceAudit;
 use App\Models\AttendanceCorrection;
 use App\Models\Employee;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class AttendanceController extends Controller
 {
@@ -475,5 +478,32 @@ class AttendanceController extends Controller
             ->with('correctedBy')
             ->latest()
             ->get();
+    }
+
+    /**
+     * Generate QR code for attendance terminal
+     */
+    public function qrImage(Request $request)
+    {
+        $token = $request->query('token');
+        
+        if (!$token) {
+            return response()->json(['error' => 'Token is required'], 400);
+        }
+
+        $payload = json_encode([
+            'system' => 'Garage ERP',
+            'type' => 'attendance',
+            'action' => 'CHECK-IN/OUT',
+            'token' => $token,
+            'generated_at' => now()->toIso8601String(),
+        ]);
+
+        try {
+            $result = (new Builder(writer: new SvgWriter(), data: $payload, size: 350, margin: 12))->build();
+            return response($result->getString(), Response::HTTP_OK)->header('Content-Type', $result->getMimeType());
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to generate QR code: ' . $e->getMessage()], 500);
+        }
     }
 }

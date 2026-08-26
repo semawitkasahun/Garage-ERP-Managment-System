@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { getNavSections } from '@/layouts/navSections';
 import { useCreateAppointment, useBays, useTechnicians } from '@/features/appointments/hooks/useAppointments';
 import apiClient from '@/services/http/axios';
 
@@ -358,15 +359,7 @@ export function NewAppointmentPage() {
   };
   const dashboardPath = DASHBOARD_BY_ROLE[role] ?? '/dashboard';
 
-  const navSections = [
-    {
-      label: 'Navigation',
-      items: [
-        { label: 'Dashboard', icon: LayoutDashboard, path: dashboardPath },
-        { label: 'Appointments', icon: CalendarDays, path: '/appointments' },
-      ],
-    },
-  ];
+  const navSections = getNavSections(role);
 
   return (
     <DashboardLayout navSections={navSections} pageTitle="Create New Appointment" roleLabel={user?.username ?? 'Staff'}>

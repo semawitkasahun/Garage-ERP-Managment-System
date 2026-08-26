@@ -46,24 +46,25 @@ class AppointmentController extends Controller
     {
         $branchId = $request->input('branch_id', $request->user()?->branch_id);
 
-        $query = \App\Models\User::where(function ($q) {
-            $q->whereHas('roles', fn ($r) => $r->where('name', 'Technician'))
-              ->orWhereHas('employee', fn ($e) => $e->where('job_title', 'LIKE', '%Technician%'));
-        })->with('employee');
+        // Query from Employee table to get only active employees
+        $query = \App\Models\Employee::where('employment_status', 'active')
+            ->with('user');
 
         if ($branchId) {
             $query->where('branch_id', $branchId);
         }
 
-        $users = $query->get();
+        $employees = $query->get();
 
-        return response()->json($users->map(function ($u) {
-            $name = $u->employee ? trim("{$u->employee->first_name} {$u->employee->last_name}") : $u->username;
+        return response()->json($employees->map(function ($e) {
+            $name = trim("{$e->first_name} {$e->last_name}");
             return [
-                'user_id' => $u->user_id,
+                'user_id' => $e->user_id ?? $e->employee_id,
+                'employee_id' => $e->employee_id,
                 'name' => $name,
-                'username' => $u->username,
-                'email' => $u->email,
+                'username' => $e->user?->username ?? $name,
+                'email' => $e->email,
+                'job_title' => $e->job_title,
             ];
         }));
     }

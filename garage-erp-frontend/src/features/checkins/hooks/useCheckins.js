@@ -19,6 +19,24 @@ export function useCreateCheckin() {
   });
 }
 
+export function useGetCheckin(checkinId) {
+  return useQuery({
+    queryKey: ['checkin', checkinId],
+    queryFn: () => checkinsApi.get(checkinId),
+    enabled: !!checkinId,
+  });
+}
+
+export function useUpdateCheckin() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ checkinId, payload }) => checkinsApi.update(checkinId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['checkins'] });
+    },
+  });
+}
+
 export function useUploadCheckinMedia() {
   return useMutation({
     mutationFn: ({ checkinId, files }) => checkinsApi.uploadMedia(checkinId, files),

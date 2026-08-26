@@ -14,10 +14,18 @@ class Quotation extends Model
 
     protected $fillable = [
         'inspection_id',
+        'checkin_id',
+        'work_order_id',
         'vehicle_id',
         'customer_id',
         'revision_no',
         'status',
+        'customer_approval_status',
+        'customer_approved_at',
+        'customer_approved_by',
+        'sent_to_customer_at',
+        'sent_via',
+        'rejection_reason',
         'subtotal',
         'tax_amount',
         'discount_amount',
@@ -30,12 +38,24 @@ class Quotation extends Model
         'tax_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'customer_approved_at' => 'datetime',
+        'sent_to_customer_at' => 'datetime',
     ];
 
     // Relationships
     public function inspection()
     {
-        return $this->belongsTo(Inspection::class, 'inspection_id', 'inspection_id');//inspection_id is the foreign key in the quotations table that references the inspection_id in the inspections table
+        return $this->belongsTo(Inspection::class, 'inspection_id', 'inspection_id');
+    }
+
+    public function checkin()
+    {
+        return $this->belongsTo(VehicleCheckin::class, 'checkin_id', 'checkin_id');
+    }
+
+    public function workOrder()
+    {
+        return $this->belongsTo(WorkOrder::class, 'work_order_id', 'work_order_id');
     }
 
     public function vehicle()
@@ -53,13 +73,13 @@ class Quotation extends Model
         return $this->belongsTo(User::class, 'created_by', 'user_id');
     }
 
+    public function customerApprovedBy()
+    {
+        return $this->belongsTo(User::class, 'customer_approved_by', 'user_id');
+    }
+
     public function items()
     {
         return $this->hasMany(QuotationItem::class, 'quotation_id');
-    }
-
-    public function workOrder()
-    {
-        return $this->hasOne(WorkOrder::class, 'quotation_id');//a quotation can generate a work order and a work order can be generated from a quotation this is why the work_orders table has a quotation_id foreign key
     }
 }

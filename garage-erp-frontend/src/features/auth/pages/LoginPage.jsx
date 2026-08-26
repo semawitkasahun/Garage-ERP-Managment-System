@@ -191,8 +191,7 @@ export function LoginPage() {
             type="submit"
             className="w-full"
           style={{ background: 'hsl(84 25% 30%)' }}
-          disabled={status === 'loading'}
-          onClick={() => alert('real button clicked')}>
+          disabled={status === 'loading'}>
             {status === 'loading' ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>

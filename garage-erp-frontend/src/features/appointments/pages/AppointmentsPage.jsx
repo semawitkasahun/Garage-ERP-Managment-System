@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { getNavSections } from '@/layouts/navSections';
 import {
   useAppointments,
   useAppointmentsRange,
@@ -184,15 +185,7 @@ export function AppointmentsPage() {
   const todayStr  = toDateStr(new Date());
   const dashboardPath = DASHBOARD_BY_ROLE[role] ?? '/dashboard';
 
-  const navSections = [
-    {
-      label: 'Navigation',
-      items: [
-        { label: 'Dashboard', icon: LayoutDashboard, path: dashboardPath },
-        { label: 'Appointments', icon: CalendarDays, path: '/appointments' },
-      ],
-    },
-  ];
+  const navSections = getNavSections(role);
 
   // ─ View / date state ─
   const [view,        setView]        = useState('day');

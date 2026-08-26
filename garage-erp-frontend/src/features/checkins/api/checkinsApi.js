@@ -13,6 +13,14 @@ export const checkinsApi = {
     const { data } = await apiClient.post('/checkins', payload);
     return data;
   },
+  async get(checkinId) {
+    const { data } = await apiClient.get(`/checkins/${checkinId}`);
+    return data;
+  },
+  async update(checkinId, payload) {
+    const { data } = await apiClient.patch(`/checkins/${checkinId}`, payload);
+    return data;
+  },
   async uploadMedia(checkinId, files) {
     const formData = new FormData();
     files.forEach((file) => formData.append('files[]', file));
@@ -23,6 +31,10 @@ export const checkinsApi = {
   },
   async uploadSignature(checkinId, signatureDataUrl) {
     const { data } = await apiClient.post(`/checkins/${checkinId}/signature`, { signature: signatureDataUrl });
+    return data;
+  },
+  async createWorkOrder(checkinId, payload) {
+    const { data } = await apiClient.post(`/checkins/${checkinId}/work-order`, payload);
     return data;
   },
 };

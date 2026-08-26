@@ -8,11 +8,11 @@ import {
 export function getNavSections(role) {
   const dashboardPath =
     role === 'owner' ? '/owner/dashboard' :
-    role === 'admin' ? '/admin/dashboard' :
-    role === 'supervisor' ? '/supervisor/dashboard' :
-    role === 'technician' ? '/technician/dashboard' :
-    role === 'finance' ? '/finance/dashboard' :
-    role === 'hr' ? '/hr/dashboard' : '/dashboard';
+      role === 'admin' ? '/admin/dashboard' :
+        role === 'supervisor' ? '/supervisor/dashboard' :
+          role === 'technician' ? '/technician/dashboard' :
+            role === 'finance' ? '/finance/dashboard' :
+              role === 'hr' ? '/hr/dashboard' : '/dashboard';
 
   const roleLower = (role || '').toLowerCase();
   const canManageEmployees = ['hr', 'hr manager', 'admin', 'owner', 'supervisor', 'manager', 'finance'].includes(roleLower);
@@ -28,7 +28,7 @@ export function getNavSections(role) {
       label: 'Front Desk',
       items: [
         { label: 'Appointments', icon: CalendarDays, path: '/appointments' },
-        { label: 'Check-In', icon: ClipboardCheck, path: '/checkins/new' },
+        { label: 'Check-In', icon: ClipboardCheck, path: '/checkins' },
         { label: 'Customers', icon: Users, path: '/customers' },
         { label: 'Leads Management', icon: UserPlus, disabled: true },
       ],
@@ -37,15 +37,19 @@ export function getNavSections(role) {
       label: 'Service',
       items: [
         { label: 'Vehicles', icon: Car, disabled: true },
-        { label: 'Quotations', icon: FileText, disabled: true },
-        { label: 'Work Orders', icon: Wrench, disabled: true },
+        { label: 'Quotations', icon: FileText, path: '/quotations/new' },
+        { label: 'Work Orders', icon: Wrench, path: '/work-orders' },
         { label: 'Quality Control', icon: ShieldCheck, disabled: true },
       ],
     },
     {
       label: 'Inventory & Supply',
       items: [
-        { label: 'Inventory', icon: Package, disabled: true },
+        { label: 'Equipment Registry', icon: Wrench, path: '/inventory/equipment' },
+        { label: 'Inventory Dashboard', icon: LayoutDashboard, path: '/inventory' },
+        { label: 'Parts & Stock', icon: Package, path: '/parts-stock' },
+        { label: 'Check-Out / In Tracker', icon: Boxes, path: '/equipment/tracker' },
+        { label: 'Equipment QR Labels', icon: Boxes, path: '/equipment/qr-labels' },
         { label: 'Suppliers', icon: Truck, disabled: true },
         { label: 'Purchasing', icon: ShoppingCart, disabled: true },
         { label: 'Sales', icon: Receipt, disabled: true },

@@ -71,4 +71,19 @@ class VehicleCheckin extends Model
     {
         return $this->hasMany(Inspection::class, 'checkin_id');
     }
+
+    public function checkinInspection()
+    {
+        return $this->hasOne(CheckinInspection::class, 'checkin_id');
+    }
+
+    public function damageRecords()
+    {
+        return $this->hasMany(VehicleDamageRecord::class, 'checkin_id');
+    }
+
+    public function workOrder()
+    {
+        return $this->belongsTo(WorkOrder::class, 'work_order_id');
+    }
 }

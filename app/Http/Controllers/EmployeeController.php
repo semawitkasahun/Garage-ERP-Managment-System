@@ -113,7 +113,7 @@ class EmployeeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'branch_id' => 'required|integer|exists:branches,branch_id',
+            'branch_id' => 'sometimes|integer|exists:branches,branch_id',
             'first_name' => 'required|string|max:50',
             'last_name' => 'required|string|max:50',
             'job_title' => 'nullable|string|max:50',
@@ -122,6 +122,11 @@ class EmployeeController extends Controller
             'email' => 'nullable|string|email|max:100',
             'employment_status' => 'nullable|string|max:20',
         ]);
+
+        // If branch_id not provided, use the authenticated user's branch
+        if (!isset($validated['branch_id'])) {
+            $validated['branch_id'] = $request->user()->branch_id;
+        }
 
         $employee = Employee::create($validated);
         return response()->json($employee, 201);
