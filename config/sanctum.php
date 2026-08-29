@@ -8,10 +8,20 @@ return [
     | Stateful Domains
     |--------------------------------------------------------------------------
     */
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
-        Sanctum::currentApplicationUrlWithPort()
+    'stateful' => array_values(array_unique(array_merge(
+        explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
+            '%s%s',
+            'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
+            Sanctum::currentApplicationUrlWithPort()
+        ))),
+        (app()->bound('request') && request()->headers->get('Origin')) ? [
+            parse_url(request()->headers->get('Origin'), PHP_URL_HOST) . 
+            (parse_url(request()->headers->get('Origin'), PHP_URL_PORT) ? ':' . parse_url(request()->headers->get('Origin'), PHP_URL_PORT) : '')
+        ] : [],
+        (app()->bound('request') && request()->headers->get('Referer')) ? [
+            parse_url(request()->headers->get('Referer'), PHP_URL_HOST) . 
+            (parse_url(request()->headers->get('Referer'), PHP_URL_PORT) ? ':' . parse_url(request()->headers->get('Referer'), PHP_URL_PORT) : '')
+        ] : []
     ))),
 
     /*

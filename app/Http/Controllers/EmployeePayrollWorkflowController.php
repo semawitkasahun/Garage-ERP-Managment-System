@@ -583,6 +583,17 @@ class EmployeePayrollWorkflowController extends Controller
             'status' => 'paid',
         ]);
 
+        // Log to CashBankTransaction
+        \App\Models\CashBankTransaction::create([
+            'transaction_date' => $payment->payment_date ?? now()->toDateString(),
+            'description' => "Payroll Payment: " . ($payrollItem->employee->first_name ?? '') . " " . ($payrollItem->employee->last_name ?? '') . " (" . $payment->receipt_number . ")",
+            'type' => 'withdrawal',
+            'account' => $payment->payment_method === 'bank' ? 'bank' : 'cash',
+            'amount' => $payment->amount,
+            'reference_type' => 'payroll_payment',
+            'reference_id' => $payment->payroll_payment_id,
+        ]);
+
         $payrollItem->update([
             'status' => 'paid',
             'paid_at' => now(),

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->bigIncrements('audit_id');
             
             // Employee and attendance reference
-            $table->foreignId('employee_id')->constrained('employees', 'employee_id')->cascadeOnDelete();
+            $table->foreignId('employee_id')->nullable()->constrained('employees', 'employee_id')->cascadeOnDelete();
             $table->foreignId('attendance_id')->nullable()->constrained('attendance', 'attendance_id')->nullOnDelete();
             
             // Action details

@@ -51,4 +51,9 @@ class Supplier extends Model
     {
         return $this->hasMany(PurchaseReturn::class, 'supplier_id');
     }
+
+    public function simplePurchases()
+    {
+        return $this->hasMany(SimplePurchase::class, 'supplier_id', 'supplier_id');
+    }
 }

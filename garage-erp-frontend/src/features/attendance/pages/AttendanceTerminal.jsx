@@ -32,14 +32,13 @@ export function AttendanceTerminal() {
   // Generate QR token and refresh every 30 seconds
   useEffect(() => {
     const generateAndSchedule = async () => {
-      if (user?.branch_id) {
-        try {
-          const result = await generateToken.mutateAsync(user.branch_id);
-          setQrData(result);
-          setCountdown(30);
-        } catch (error) {
-          console.error('Failed to generate QR token:', error);
-        }
+      const branchId = user?.branch_id || 1;
+      try {
+        const result = await generateToken.mutateAsync(branchId);
+        setQrData(result);
+        setCountdown(30);
+      } catch (error) {
+        console.error('Failed to generate QR token:', error);
       }
     };
 
@@ -77,9 +76,8 @@ export function AttendanceTerminal() {
   };
 
   const generateQrCodeUrl = (token) => {
-    // Use backend QR code generation like equipment QR codes
-    // Use the full URL since this is a separate frontend project
-    return 'http://localhost:8000/api/attendance/qr?token=' + token;
+    // Use relative URL so it works on any host/IP (PC, mobile, etc.)
+    return '/api/attendance/qr?token=' + token;
   };
 
   const handlePrintQr = () => {

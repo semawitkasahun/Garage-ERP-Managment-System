@@ -70,6 +70,7 @@ export default function ReturnSessionModal({ onClose }) {
           {!scannedEquipment ? (
             <>
               <QrScannerModal
+                open={!scannedEquipment}
                 title="Scan Checkout QR"
                 hint="Point the camera at the equipment's Checkout QR tag."
                 onDetected={handleDetected}

@@ -22,12 +22,16 @@ export const useWorkOrders = (params = {}) => {
     queryKey: workOrderKeys.list(params),
     queryFn: () => workOrdersApi.getAll(params),
     select: (response) => {
-      // Handle paginated response (Laravel pagination)
-      if (response?.data) {
-        return Array.isArray(response.data) ? response.data : [];
+      // Axios wraps response in .data
+      const rawData = response?.data !== undefined ? response.data : response;
+      
+      // Handle paginated response (Laravel pagination has a .data property inside the response JSON)
+      if (rawData && rawData.data && Array.isArray(rawData.data)) {
+        return rawData.data;
       }
+      
       // Handle direct array response
-      return Array.isArray(response) ? response : [];
+      return Array.isArray(rawData) ? rawData : [];
     },
   });
 };

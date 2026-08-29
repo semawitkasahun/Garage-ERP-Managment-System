@@ -163,6 +163,7 @@ export default function CheckoutSessionModal({ onClose }) {
             <p className="text-sm text-slate-500">Checking out to <span className="font-medium text-slate-900">{technician ? empName(technician) : '—'}</span></p>
 
             <QrScannerModal
+              open={step === 'scanning'}
               title="Scan Checkout QR"
               hint="Point the camera at the equipment's Checkout QR tag."
               onDetected={handleDetected}

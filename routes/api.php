@@ -41,6 +41,9 @@ use App\Http\Controllers\PayrollItemController;
 use App\Http\Controllers\EmployeeSalaryStructureController;
 use App\Http\Controllers\PayrollReportController;
 use App\Http\Controllers\EmployeePayrollWorkflowController;
+use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\SimpleSaleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -82,6 +85,52 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/change-password', [AuthController::class, 'changePassword']);
     });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Finance Management Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Owner,Admin,Finance,Manager,Supervisor')
+        ->prefix('finance')
+        ->group(function () {
+            Route::get('/dashboard', [FinanceController::class, 'getDashboard']);
+            Route::get('/transactions', [FinanceController::class, 'getTransactions']);
+            Route::get('/cash-bank', [FinanceController::class, 'getCashBank']);
+            Route::post('/cash-bank', [FinanceController::class, 'recordCashBank']);
+            Route::get('/receivables', [FinanceController::class, 'getReceivables']);
+            Route::get('/payables', [FinanceController::class, 'getPayables']);
+            Route::get('/reports', [FinanceController::class, 'getReports']);
+            
+            // Expenses
+            Route::get('/expenses', [ExpenseController::class, 'index']);
+            Route::post('/expenses', [ExpenseController::class, 'store']);
+            Route::get('/expenses/summary', [ExpenseController::class, 'getSummary']);
+            Route::get('/expenses/{expense}', [ExpenseController::class, 'show']);
+            Route::patch('/expenses/{expense}', [ExpenseController::class, 'update']);
+            Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy']);
+            Route::post('/expenses/{expense}/approve', [ExpenseController::class, 'approve']);
+            Route::post('/expenses/{expense}/reject', [ExpenseController::class, 'reject']);
+            Route::post('/expenses/{expense}/pay', [ExpenseController::class, 'pay']);
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sales Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:Service Advisor,Manager,Supervisor,Admin,Owner,Technician,Finance')
+        ->prefix('sales')
+        ->group(function () {
+            Route::get('/summary', [SimpleSaleController::class, 'summary']);
+            Route::get('/', [SimpleSaleController::class, 'index']);
+            Route::post('/', [SimpleSaleController::class, 'store']);
+            Route::get('/{sale}', [SimpleSaleController::class, 'show']);
+            Route::put('/{sale}', [SimpleSaleController::class, 'update']);
+            Route::delete('/{sale}', [SimpleSaleController::class, 'destroy']);
+            Route::put('/{sale}/mark-paid', [SimpleSaleController::class, 'markAsPaid']);
+            Route::put('/{sale}/payment', [SimpleSaleController::class, 'updatePayment']);
+        });
 
     // Staff Appointments & Bays
     Route::get('/appointments', [AppointmentController::class, 'index']);
@@ -192,6 +241,21 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{supplier}', [\App\Http\Controllers\SupplierController::class, 'show']);
             Route::patch('/{supplier}', [\App\Http\Controllers\SupplierController::class, 'update']);
             Route::delete('/{supplier}', [\App\Http\Controllers\SupplierController::class, 'destroy']);
+            Route::get('/{supplier}/purchases', [\App\Http\Controllers\SupplierController::class, 'supplierPurchases']);
+        });
+
+    Route::middleware('role:Service Advisor,Manager,Supervisor,Admin,Owner,Technician,Finance')
+        ->prefix('purchases')
+        ->group(function () {
+            Route::get('/summary', [\App\Http\Controllers\SimplePurchaseController::class, 'summary']);
+            Route::get('/', [\App\Http\Controllers\SimplePurchaseController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\SimplePurchaseController::class, 'store']);
+            Route::get('/{purchase}', [\App\Http\Controllers\SimplePurchaseController::class, 'show']);
+            Route::put('/{purchase}', [\App\Http\Controllers\SimplePurchaseController::class, 'update']);
+            Route::delete('/{purchase}', [\App\Http\Controllers\SimplePurchaseController::class, 'destroy']);
+            Route::put('/{purchase}/mark-paid', [\App\Http\Controllers\SimplePurchaseController::class, 'markAsPaid']);
+            Route::put('/{purchase}/payment', [\App\Http\Controllers\SimplePurchaseController::class, 'updatePayment']);
+            Route::post('/items/{itemId}/add-to-inventory', [\App\Http\Controllers\SimplePurchaseController::class, 'addToInventory']);
         });
 
     Route::middleware('role:Service Advisor,Manager,Supervisor,Admin,Owner,Technician')

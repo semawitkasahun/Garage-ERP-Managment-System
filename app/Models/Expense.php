@@ -20,6 +20,11 @@ class Expense extends Model
         'status',
         'approved_by',
         'expense_date',
+        'payment_method',
+        'reference_no',
+        'supplier_id',
+        'notes',
+        'receipt_path',
     ];
 
     protected $casts = [
@@ -36,5 +41,10 @@ class Expense extends Model
     public function approvedBy()
     {
         return $this->belongsTo(User::class, 'approved_by', 'user_id');
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class, 'supplier_id', 'supplier_id');
     }
 }

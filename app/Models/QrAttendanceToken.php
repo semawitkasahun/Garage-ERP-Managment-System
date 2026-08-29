@@ -13,6 +13,9 @@ class QrAttendanceToken extends Model
     protected $table = 'qr_attendance_tokens';
     protected $primaryKey = 'token_id';
 
+    // The table has created_at but no updated_at column
+    const UPDATED_AT = null;
+
     protected $fillable = [
         'token',
         'branch_id',

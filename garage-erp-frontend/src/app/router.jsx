@@ -28,6 +28,7 @@ import { PayrollHistoryPage } from '@/features/payroll/pages/PayrollHistoryPage'
 import { PaymentDetailsPage } from '@/features/payroll/pages/PaymentDetailsPage';
 import { EmployeePayrollDetailPage } from '@/features/payroll/pages/EmployeePayrollDetailPage';
 import { PayrollReportsPage } from '@/features/payroll/pages/PayrollReportsPage';
+import { NotFound } from '@/components/NotFound';
 import { WorkOrderListPage } from '@/features/workorders/pages/WorkOrderListPage';
 import { WorkOrderDetailPage } from '@/features/workorders/pages/WorkOrderDetailPage';
 import { WorkOrderCreatePage } from '@/features/workorders/pages/WorkOrderCreatePage';
@@ -44,6 +45,15 @@ import { SuppliersPage } from '@/features/inventory/pages/SuppliersPage';
 import { EquipmentQrLabelsPage } from '@/features/inventory/pages/EquipmentQrLabelsPage';
 import { EquipmentPage } from '@/features/inventory/pages/Equipment/EquipmentPage';
 import { CheckInOutTrackerPage } from '@/features/inventory/pages/Equipment/CheckInOutTrackerPage';
+import { PurchasingPage } from '@/features/purchasing/pages/PurchasingPage';
+import { SalesPage } from '@/features/sales/pages/SalesPage';
+import { FinanceDashboard as FinanceModuleDashboard } from '@/features/finance/pages/FinanceDashboard';
+import { TransactionsPage } from '@/features/finance/pages/TransactionsPage';
+import { ExpensesPage } from '@/features/finance/pages/ExpensesPage';
+import { CashBankPage } from '@/features/finance/pages/CashBankPage';
+import { AccountsReceivablePage } from '@/features/finance/pages/AccountsReceivablePage';
+import { AccountsPayablePage } from '@/features/finance/pages/AccountsPayablePage';
+import { ReportsPage } from '@/features/finance/pages/ReportsPage';
 
 
 export const router = createBrowserRouter([
@@ -77,6 +87,8 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute allowedRoles={['owner', 'admin', 'supervisor', 'manager', 'service_advisor', 'technician', 'hr', 'finance', 'employee']} />, children: [
       { path: '/appointments', element: <AppointmentsPage /> },
+      { path: '/purchasing', element: <PurchasingPage /> },
+      { path: '/sales', element: <SalesPage /> },
       { path: '/appointments/new', element: <NewAppointmentPage /> },
       { path: '/checkins', element: <CheckinListPage /> },
       { path: '/checkins/new', element: <CheckinPage /> },
@@ -133,8 +145,17 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <ProtectedRoute allowedRoles={['finance']} />,
-    children: [{ path: '/finance/dashboard', element: <FinanceDashboard /> }],
+    element: <ProtectedRoute allowedRoles={['owner', 'admin', 'finance', 'manager', 'supervisor']} />,
+    children: [
+      { path: '/finance', element: <FinanceModuleDashboard /> },
+      { path: '/finance/dashboard', element: <FinanceModuleDashboard /> },
+      { path: '/finance/transactions', element: <TransactionsPage /> },
+      { path: '/finance/expenses', element: <ExpensesPage /> },
+      { path: '/finance/cash-bank', element: <CashBankPage /> },
+      { path: '/finance/receivables', element: <AccountsReceivablePage /> },
+      { path: '/finance/payables', element: <AccountsPayablePage /> },
+      { path: '/finance/reports', element: <ReportsPage /> },
+    ],
   },
   {
     element: <ProtectedRoute allowedRoles={['technician']} />,
@@ -156,4 +177,5 @@ export const router = createBrowserRouter([
       { path: '/service-advisor/dashboard', element: <GenericDashboard /> },
     ],
   },
+  { path: '*', element: <NotFound /> },
 ]);

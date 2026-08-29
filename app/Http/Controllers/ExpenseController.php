@@ -52,15 +52,22 @@ class ExpenseController extends Controller
             'description' => 'nullable|string|max:255',
             'status' => 'nullable|string|max:20',
             'expense_date' => 'nullable|date',
+            'payment_method' => 'nullable|string|in:cash,bank',
+            'reference_no' => 'nullable|string|max:100',
+            'supplier_id' => 'nullable|integer|exists:suppliers,supplier_id',
+            'notes' => 'nullable|string',
+            'receipt_path' => 'nullable|string',
         ]);
 
         $expense = Expense::create($validated);
+        $this->recordCashBankTransaction($expense);
+        
         return response()->json($expense, 201);
     }
 
     public function show(Expense $expense)
     {
-        return $expense->load(['branch', 'approvedBy']);
+        return $expense->load(['branch', 'approvedBy', 'supplier']);
     }
 
     public function update(Request $request, Expense $expense)
@@ -70,17 +77,25 @@ class ExpenseController extends Controller
             'amount' => 'nullable|numeric|min:0.01',
             'description' => 'nullable|string|max:255',
             'status' => 'nullable|string|max:20',
+            'payment_method' => 'nullable|string|in:cash,bank',
+            'reference_no' => 'nullable|string|max:100',
+            'supplier_id' => 'nullable|integer|exists:suppliers,supplier_id',
+            'notes' => 'nullable|string',
+            'receipt_path' => 'nullable|string',
+            'expense_date' => 'nullable|date',
         ]);
 
         $expense->update($validated);
+        $this->recordCashBankTransaction($expense);
+
         return $expense;
     }
 
     public function destroy(Expense $expense)
     {
-        if ($expense->status === 'approved') {
+        if ($expense->status === 'approved' || $expense->status === 'paid') {
             return response()->json([
-                'message' => 'Cannot delete approved expense'
+                'message' => 'Cannot delete approved or paid expense'
             ], 422);
         }
 
@@ -110,7 +125,28 @@ class ExpenseController extends Controller
     public function pay(Expense $expense)
     {
         $expense->update(['status' => 'paid']);
+        $this->recordCashBankTransaction($expense);
         return $expense;
+    }
+
+    private function recordCashBankTransaction(Expense $expense)
+    {
+        if ($expense->status === 'paid') {
+            $exists = \App\Models\CashBankTransaction::where('reference_type', 'expense')
+                ->where('reference_id', $expense->expense_id)
+                ->exists();
+            if (!$exists) {
+                \App\Models\CashBankTransaction::create([
+                    'transaction_date' => $expense->expense_date ?? now()->toDateString(),
+                    'description' => "Expense: " . ($expense->description ?: $expense->category),
+                    'type' => 'withdrawal',
+                    'account' => $expense->payment_method === 'bank' ? 'bank' : 'cash',
+                    'amount' => $expense->amount,
+                    'reference_type' => 'expense',
+                    'reference_id' => $expense->expense_id,
+                ]);
+            }
+        }
     }
 
     public function getByCategory($category)

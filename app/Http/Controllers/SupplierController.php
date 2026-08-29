@@ -34,6 +34,8 @@ class SupplierController extends Controller
             'address' => 'nullable|string|max:255',
             'payment_terms' => 'nullable|string|max:50',
             'lead_time_days' => 'nullable|integer|min:0',
+            'status' => 'nullable|in:active,inactive',
+            'notes' => 'nullable|string',
         ]);
 
         $supplier = Supplier::create($validated);
@@ -66,6 +68,8 @@ class SupplierController extends Controller
             'address' => 'nullable|string|max:255',
             'payment_terms' => 'nullable|string|max:50',
             'lead_time_days' => 'nullable|integer|min:0',
+            'status' => 'nullable|in:active,inactive',
+            'notes' => 'nullable|string',
         ]);
 
         $supplier->update($validated);
@@ -99,5 +103,16 @@ class SupplierController extends Controller
             'supplier' => $supplier,
             'average_scores' => $average,
         ]);
+    }
+
+    public function supplierPurchases(Supplier $supplier)
+    {
+        $purchases = $supplier->simplePurchases()
+            ->with(['items.inventoryItem', 'createdBy'])
+            ->latest('purchase_date')
+            ->latest('purchase_id')
+            ->get();
+
+        return response()->json($purchases);
     }
 }

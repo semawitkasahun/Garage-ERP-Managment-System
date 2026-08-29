@@ -1,5 +1,6 @@
 // src/app/App.jsx
 import { useEffect } from 'react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from './router';
@@ -49,7 +50,9 @@ export function App() {
       <ToastProvider>
         <Toaster richColors position="top-right" />
         <AuthGate>
-          <RouterProvider router={router} />
+          <ErrorBoundary>
+            <RouterProvider router={router} />
+          </ErrorBoundary>
         </AuthGate>
       </ToastProvider>
     </QueryClientProvider>
